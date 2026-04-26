@@ -62,6 +62,43 @@ Useful scripts:
 - `CONTRIBUTING.md`
 - `SECURITY.md`
 - `PRIVACY.md`
+- `docs/playwright-integration.md`
+
+## Use recordings in Playwright
+
+You can reuse exported `API Replay` JSON files directly in Playwright tests.
+
+```ts
+import path from 'node:path';
+import { test, expect } from '@playwright/test';
+import { applyRecordingMocks } from './tests/helpers/recording-mock';
+
+test('uses an exported recording as API mocks', async ({ context, page }) => {
+  const recordingPath = path.resolve(
+    process.cwd(),
+    'tests/fixtures/recordings/playwright-demo-recording.json'
+  );
+
+  const mock = await applyRecordingMocks(context, recordingPath, {
+    fallbackMatching: true,
+    strictUnmatched: false
+  });
+
+  try {
+    await page.goto('https://example.test');
+    const body = await page.evaluate(async () => {
+      const response = await fetch('https://api.example.com/users/me');
+      return response.json();
+    });
+
+    expect(body).toEqual({ id: 'u_123', name: 'API Replay' });
+  } finally {
+    await mock.dispose();
+  }
+});
+```
+
+See `docs/playwright-integration.md` for full workflow and strict-mode guidance.
 
 ## License
 

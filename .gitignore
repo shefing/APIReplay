@@ -10,3 +10,4 @@ mockit.iml
 !.idea/runConfigurations/
 
 .DS_Store
+/test-results/.last-run.json

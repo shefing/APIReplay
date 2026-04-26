@@ -1,0 +1,32 @@
+{
+  "name": "Playwright Demo Recording",
+  "filter": [
+    "/api"
+  ],
+  "requests": {
+    "GET https://api.example.com/users/me": {
+      "url": "https://api.example.com/users/me",
+      "method": "GET",
+      "status": 200,
+      "responseHeaders": {
+        "content-type": "application/json"
+      },
+      "responseBody": "{\"id\":\"u_123\",\"name\":\"API Replay\"}",
+      "enabled": true
+    },
+    "GET https://api.example.com/todos": {
+      "url": "https://api.example.com/todos",
+      "method": "GET",
+      "status": 200,
+      "responseHeaders": {
+        "content-type": "application/json"
+      },
+      "responseBody": "[{\"id\":1,\"title\":\"Ship Playwright helper\"}]",
+      "enabled": false
+    }
+  },
+  "metadata": {
+    "totalRequests": 2,
+    "responsesWithBody": 2
+  }
+}
