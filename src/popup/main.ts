@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const deleteRecordBtn = document.getElementById('deleteRecord');
     const removeAllRecordingsBtn = document.getElementById('removeAllRecordings');
     const apiPreviewDiv = document.getElementById('apiPreview');
+    const recordApiPreviewDiv = document.getElementById('recordApiPreview');
     const statusIndicator = document.getElementById('statusIndicator');
     const fallbackMatchingCheckbox = document.getElementById('fallbackMatching');
     const apiCallModal = document.getElementById('apiCallModal');
@@ -451,6 +452,37 @@ document.addEventListener('DOMContentLoaded', () => {
         return (requestSearchInput?.value || '').trim().toLowerCase();
     }
 
+    function renderPreviewList(container, recordingName, requests, requestHitCounts) {
+        if (!container) {
+            return;
+        }
+
+        renderApiPaths(
+            container,
+            requests,
+            requestHitCounts,
+            (path) => showApiCallDetails(recordingName, path),
+            (requestKey, enabled) => {
+                void updateRecordingRequestSettings(recordingName, requestKey, { enabled }).then((updated) => {
+                    if (!updated) {
+                        alert('Failed to update request replay settings.');
+                        return;
+                    }
+                    updateApiPreview();
+                });
+            },
+            (requestKey, status) => {
+                void updateRecordingRequestSettings(recordingName, requestKey, { status }).then((updated) => {
+                    if (!updated) {
+                        alert('Failed to update request status.');
+                        return;
+                    }
+                    updateApiPreview();
+                });
+            }
+        );
+    }
+
     function updateApiPreview() {
         const name = recordingSelect.value;
         if (name) {
@@ -463,13 +495,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then(([recording, replayData, replaySessionData]) => {
                     if (!recording?.requests) {
                         apiPreviewDiv.textContent = 'No recording found or invalid recording format';
+                        if (recordApiPreviewDiv) {
+                            recordApiPreviewDiv.textContent = 'No recording found or invalid recording format';
+                        }
                         return;
                     }
 
                     const searchTerm = getRequestSearchTerm();
+                    const allRequests = recording.requests;
                     const filteredRequests = searchTerm
                         ? Object.fromEntries(
-                            Object.entries(recording.requests).filter(([key, req]) => {
+                            Object.entries(allRequests).filter(([key, req]) => {
                                 const statusText = typeof req.status === 'number' ? String(req.status) : '';
                                 return (
                                     key.toLowerCase().includes(searchTerm) ||
@@ -479,7 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 );
                             })
                         )
-                        : recording.requests;
+                        : allRequests;
 
                     const replayStatsHitCount = replaySessionData.replayStats?.hitCount || {};
                     const replayedRequests = replayData.replayedRequests || {};
@@ -488,40 +524,24 @@ document.addEventListener('DOMContentLoaded', () => {
                         ...replayStatsHitCount
                     };
 
-                    renderApiPaths(
-                        apiPreviewDiv,
-                        filteredRequests,
-                        requestHitCounts,
-                        (path) => showApiCallDetails(name, path),
-                        (requestKey, enabled) => {
-                            void updateRecordingRequestSettings(name, requestKey, { enabled }).then((updated) => {
-                                if (!updated) {
-                                    alert('Failed to update request replay settings.');
-                                    return;
-                                }
-                                updateApiPreview();
-                            });
-                        },
-                        (requestKey, status) => {
-                            void updateRecordingRequestSettings(name, requestKey, { status }).then((updated) => {
-                                if (!updated) {
-                                    alert('Failed to update request status.');
-                                    return;
-                                }
-                                updateApiPreview();
-                            });
-                        }
-                    );
+                    renderPreviewList(apiPreviewDiv, name, filteredRequests, requestHitCounts);
+                    renderPreviewList(recordApiPreviewDiv, name, allRequests, requestHitCounts);
                 })
                 .catch((error) => {
                     console.error('Load recording error:', error);
                     apiPreviewDiv.textContent = 'Error loading API preview';
+                    if (recordApiPreviewDiv) {
+                        recordApiPreviewDiv.textContent = 'Error loading API preview';
+                    }
                 })
                 .finally(() => {
                     setUpdatingState(false);
                 });
         } else {
             apiPreviewDiv.textContent = 'No recording selected';
+            if (recordApiPreviewDiv) {
+                recordApiPreviewDiv.textContent = 'No recording selected';
+            }
         }
     }
 
