@@ -17,6 +17,7 @@ import {
     updateRecordingRequestResponse,
     deletePreset,
     getSettings,
+    ensureDefaultPresets,
     setLastUsedPreset,
     updateRecordingRequestSettings,
     updateReplayOptions,
@@ -69,6 +70,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const newRecordingNameInput = document.getElementById('newRecordingName');
     const cancelRenameBtn = document.getElementById('cancelRename');
     const confirmRenameBtn = document.getElementById('confirmRename');
+    const recordTabButton = document.getElementById('recordTabButton');
+    const replayTabButton = document.getElementById('replayTabButton');
+    const recordTabPanel = document.getElementById('recordTabPanel');
+    const replayTabPanel = document.getElementById('replayTabPanel');
 
 
     let isRecording = false;
@@ -77,6 +82,18 @@ document.addEventListener('DOMContentLoaded', () => {
     let presets = [];
     let lastPresetId = '';
     let isUpdating = false;
+
+    function setActiveTab(tab: 'record' | 'replay') {
+        const isRecordTab = tab === 'record';
+        recordTabButton?.classList.toggle('tab-button-active', isRecordTab);
+        replayTabButton?.classList.toggle('tab-button-active', !isRecordTab);
+        recordTabPanel?.classList.toggle('hidden', !isRecordTab);
+        replayTabPanel?.classList.toggle('hidden', isRecordTab);
+    }
+
+    recordTabButton?.addEventListener('click', () => setActiveTab('record'));
+    replayTabButton?.addEventListener('click', () => setActiveTab('replay'));
+    setActiveTab('record');
 
     // Set default filter
     filterInput.value = '/api';
@@ -171,6 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateButtonStates();
                 updateStatusIndicator();
                 recordingSelect.value = name;
+                void setLastUsedRecording(name);
                 updateApiPreview();
                 alert('Recording started. The page will refresh to begin capturing network traffic.');
             } else {
@@ -666,7 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     async function loadPresets() {
-        const settings = await getSettings();
+        const settings = await ensureDefaultPresets();
         presets = settings.presets || [];
         lastPresetId = settings.lastPresetId || '';
         presetSelect.innerHTML = '<option value="">No preset</option>';

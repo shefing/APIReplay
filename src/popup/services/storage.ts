@@ -8,6 +8,13 @@ import {
   upsertRecordingByName
 } from '../../shared/storage';
 
+const DEFAULT_PRESETS: Array<Omit<Preset, 'id'>> = [
+  { name: 'REST API', filter: ['/api', '/v1'] },
+  { name: 'GraphQL', filter: ['/graphql'] },
+  { name: 'Auth', filter: ['/auth', '/login', '/users/me'] },
+  { name: 'Payments', filter: ['/payments', '/checkout'] }
+];
+
 export async function ensureMigratedStorage() {
   return migrateStorageIfNeeded();
 }
@@ -106,6 +113,22 @@ export async function setLastUsedPreset(presetId: string): Promise<void> {
   const settings = await getSettings();
   settings.lastPresetId = presetId;
   await saveSettings(settings);
+}
+
+export async function ensureDefaultPresets(): Promise<UserSettings> {
+  const settings = await getSettings();
+  if (settings.presets.length > 0) {
+    return settings;
+  }
+
+  settings.presets = DEFAULT_PRESETS.map((preset) => ({
+    id: crypto.randomUUID(),
+    name: preset.name,
+    filter: [...preset.filter]
+  }));
+  settings.lastPresetId = settings.presets[0]?.id || '';
+  await saveSettings(settings);
+  return settings;
 }
 
 export async function getLastUsedRecordingName(): Promise<string> {
