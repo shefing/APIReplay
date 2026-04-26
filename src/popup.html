@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Network Traffic Recorder and Replayer</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <title>API Replay</title>
     <link href="styles.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100 text-gray-900 dark:bg-black dark:text-gray-100">
 <div class="h-full flex flex-col">
     <div class="p-4 flex-grow overflow-auto">
         <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold">Network Traffic Recorder and Replayer</h2>
+            <h2 class="text-xl font-bold">API Replay</h2>
             <button id="darkModeToggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-600" title="Toggle dark mode">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
@@ -24,6 +23,12 @@
             <div class="grid grid-cols-1 gap-2 mt-2">
                 <input type="text" id="recordingName" placeholder="Recording Name" class="p-1 text-sm border rounded dark:bg-gray-700" title="Enter a name for your recording">
                 <input type="text" id="filter" placeholder="Filter (e.g., /api, /graphql, /v1)" class="p-1 text-sm border rounded dark:bg-gray-700" title="Enter URL patterns to filter, separated by commas">
+                <div class="flex gap-2">
+                    <select id="presetSelect" class="p-1 text-sm border rounded dark:bg-gray-700 flex-1" title="Select preset filter">
+                        <option value="">No preset</option>
+                    </select>
+                    <button id="managePresets" class="bg-gray-500 text-white px-2 py-1 rounded text-xs" title="Manage filter presets">Presets</button>
+                </div>
                 <button id="recordButton" class="bg-blue-500 text-white px-4 py-1 rounded text-sm" title="Start or stop recording">Start Recording</button>
             </div>
         </div>
@@ -82,10 +87,17 @@
                 <input type="checkbox" id="fallbackMatching" class="form-checkbox">
                 <span>Enable fallback matching for similar paths</span>
             </label>
+            <div class="grid grid-cols-2 gap-2 mt-2">
+                <input id="latencyMs" type="number" min="0" placeholder="Latency ms" class="p-1 text-sm border rounded dark:bg-gray-700">
+                <input id="latencyRange" type="text" placeholder="Range: min,max" class="p-1 text-sm border rounded dark:bg-gray-700">
+            </div>
         </div>
+
+        <div id="replayStatsPanel" class="mb-4 p-2 rounded bg-gray-200 dark:bg-gray-700 text-xs hidden"></div>
 
         <div>
             <h3 class="text-base font-semibold mb-1">API Preview</h3>
+            <input id="requestSearch" type="text" class="w-full p-1 mb-2 text-sm border rounded dark:bg-gray-700" placeholder="Search requests by URL/method/status">
             <div id="apiPreview" class="bg-gray-100 dark:bg-gray-700 p-2 rounded text-sm"></div>
         </div>
     </div>
@@ -120,7 +132,20 @@
     </div>
 </div>
 
-<script src="popup.js"></script>
+<div id="presetsDialog" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg w-[95%] max-w-lg border dark:border-gray-600 flex flex-col space-y-3">
+        <h3 class="text-lg font-bold dark:text-white">Manage Presets</h3>
+        <input type="text" id="presetName" class="w-full p-2 border rounded dark:bg-gray-700 dark:text-white" placeholder="Preset name">
+        <input type="text" id="presetFilter" class="w-full p-2 border rounded dark:bg-gray-700 dark:text-white" placeholder="Filter list (comma-separated)">
+        <div id="presetsList" class="max-h-48 overflow-auto text-sm"></div>
+        <div class="flex justify-end">
+            <button id="closePresets" class="bg-gray-500 text-white px-3 py-2 rounded mr-2">Close</button>
+            <button id="savePreset" class="bg-blue-500 text-white px-3 py-2 rounded">Save Preset</button>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="popup/main.ts"></script>
 </body>
 </html>
 

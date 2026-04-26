@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Network Traffic Recorder and Replayer",
-  "version": "1.0",
+  "name": "API Replay",
+  "version": "1.0.0",
+  "minimum_chrome_version": "124",
   "description": "Record and replay network traffic for web applications using Chrome Debugger Protocol",
   "permissions": [
     "storage",
@@ -19,7 +20,7 @@
     "128": "icons/icon-128.png"
   },
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "src/popup.html",
     "default_icon": {
       "16": "icons/icon-16.png",
       "48": "icons/icon-48.png",
@@ -27,14 +28,24 @@
     }
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "src/background/main.ts",
+    "type": "module"
+  },
+  "commands": {
+    "toggle-recording": {
+      "suggested_key": {
+        "default": "Alt+Shift+R",
+        "mac": "Option+Shift+R"
+      },
+      "description": "Toggle recording"
+    }
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' https://cdn.jsdelivr.net;"
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self';"
   },
   "web_accessible_resources": [
     {
-      "resources": ["styles.css", "icons/icon-16.png", "icons/icon-48.png", "icons/icon-128.png", "icons/icon-recording-16.png", "icons/icon-recording-48.png", "icons/icon-recording-128.png", "icons/icon-replaying-16.png", "icons/icon-replaying-48.png", "icons/icon-replaying-128.png"],
+      "resources": ["icons/icon-16.png", "icons/icon-48.png", "icons/icon-128.png", "icons/icon-recording-16.png", "icons/icon-recording-48.png", "icons/icon-recording-128.png", "icons/icon-replaying-16.png", "icons/icon-replaying-48.png", "icons/icon-replaying-128.png"],
       "matches": ["<all_urls>"]
     }
   ]
