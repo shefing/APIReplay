@@ -2,6 +2,8 @@
 
 API Replay is a Chrome MV3 extension for recording and replaying network/API traffic to make frontend debugging, QA, and demos deterministic.
 
+![API Replay popup preview](img.png)
+
 ## Key capabilities
 
 - Record requests by URL filter.
