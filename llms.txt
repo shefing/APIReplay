@@ -1,0 +1,33 @@
+# Shefing iSDLC
+
+> Methodology framework for AI-assisted software development in the agentic era
+
+## Core Documents
+
+- [MANIFESTO.md](https://github.com/shefing/isdlc/blob/main/MANIFESTO.md): The iSDLC Manifesto — amendment to the Agile Manifesto for the agentic era, with 4 amended values and 12 amended principles
+- [PRACTICES.md](https://github.com/shefing/isdlc/blob/main/PRACTICES.md): Operational Principles & Practices — the 8 enforceable principles behind the Manifesto (Human Accountability, Radical Simplicity, Bot-Ready Context, Customer-Centricity, Evolutionary Sustainability, Self-Contained Teams, Agility 2.0, Testability)
+- [PROCESS.md](https://github.com/shefing/isdlc/blob/main/PROCESS.md): 7-stage lifecycle overview with methods, tools, and agent/human roles
+- [GOVERNANCE.md](https://github.com/shefing/isdlc/blob/main/GOVERNANCE.md): Risk framework, Human Validation Protocol, Iterative Human Review, Tiered Gating, compliance, auditability
+- [AI_PRACTICES.md](https://github.com/shefing/isdlc/blob/main/AI_PRACTICES.md): Stage-agnostic AI tooling guide — agentic CLI vs IDE, skill ecosystem (Superpowers, PAUL, Seed, GSD), MCP servers, research tools, audit agent pattern, golden rules
+- [SPEC.md](https://github.com/shefing/isdlc/blob/main/SPEC.md): Master specification (kernel of truth)
+- [TECH_DEBT.md](https://github.com/shefing/isdlc/blob/main/TECH_DEBT.md): Live technical debt log
+
+## Stage Guides
+
+- [framework/01-goals.md](https://github.com/shefing/isdlc/blob/main/framework/01-goals.md): Business Goals — Gemini Deep Research, Seed incubation, NotebookLM
+- [framework/02-requirements.md](https://github.com/shefing/isdlc/blob/main/framework/02-requirements.md): Requirements Engineering — ChatPRD, Seed graduation, synthetic personas
+- [framework/03-design.md](https://github.com/shefing/isdlc/blob/main/framework/03-design.md): Logic & UI Design — ChatPRD specs, Figma AI/Make, Magic Patterns, Builder.io bridge
+- [framework/04-architecture.md](https://github.com/shefing/isdlc/blob/main/framework/04-architecture.md): System Architecture & Delivery Strategy — PAUL planning, ADR-driven development
+- [framework/05-coding-ci-testing.md](https://github.com/shefing/isdlc/blob/main/framework/05-coding-ci-testing.md): Coding, CI & Testing — Claude Code/Gemini CLI, PAUL/GSD execution, Superpowers TDD, Chrome DevTools MCP, audit agents
+- [framework/06-iac-cd.md](https://github.com/shefing/isdlc/blob/main/framework/06-iac-cd.md): IaC & CD Execution
+- [framework/07-observability.md](https://github.com/shefing/isdlc/blob/main/framework/07-observability.md): Autonomous Observability & Maintenance
+
+## Supporting
+
+- [AGENTS.md](https://github.com/shefing/isdlc/blob/main/AGENTS.md): Universal agent instruction set (read-this-first for any AI participant)
+- [IMPLEMENTATION.md](https://github.com/shefing/isdlc/blob/main/IMPLEMENTATION.md): Rollout strategy (Pilot → Expansion → Standardization)
+- [LEGACY_ONBOARDING.md](https://github.com/shefing/isdlc/blob/main/LEGACY_ONBOARDING.md): Context Re-Hydration flow for onboarding legacy projects into the iSDLC (TIME/7Rs triage, security baseline, layered test pyramid, Strangler Fig, observability backfill, Agent-Readiness Gate)
+- [LEGACY_MIGRATION_PATTERNS.md](https://github.com/shefing/isdlc/blob/main/LEGACY_MIGRATION_PATTERNS.md): Pattern-oriented companion to LEGACY_ONBOARDING.md — seven reusable patterns (Disposition, Strangler Fig, Characterization Tests, Anti-Corruption Layer, Branch by Abstraction, Federated Prioritization, Boundary Observability) plus decision tree for inactive, risky, or "don't touch" components
+- [CLAUDE.md](https://github.com/shefing/isdlc/blob/main/CLAUDE.md): Project instructions for Claude Code agents
+- [docs/adr/](https://github.com/shefing/isdlc/tree/main/docs/adr): Architecture Decision Records
+- [docs/release/](https://github.com/shefing/isdlc/tree/main/docs/release): Release-boundary documentation

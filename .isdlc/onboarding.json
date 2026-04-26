@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "path": "/Users/tsemachhadad/dev/APIReplay",
+  "startedAt": "2026-04-26",
+  "updatedAt": "2026-04-26",
+  "steps": {
+    "0": {
+      "status": "pending-human",
+      "artifacts": [
+        "docs/adr/0000-disposition-legacy-system.md"
+      ],
+      "updatedAt": "2026-04-26",
+      "notes": "disposition=Retain"
+    },
+    "1": {
+      "status": "pending-human",
+      "artifacts": [
+        "docs/legacy/DISCOVERY.md"
+      ],
+      "updatedAt": "2026-04-26"
+    },
+    "3": {
+      "status": "not-started",
+      "artifacts": [],
+      "updatedAt": "2026-04-26"
+    },
+    "4": {
+      "status": "not-started",
+      "artifacts": [],
+      "updatedAt": "2026-04-26"
+    },
+    "5": {
+      "status": "not-started",
+      "artifacts": [],
+      "updatedAt": "2026-04-26"
+    },
+    "6": {
+      "status": "not-started",
+      "artifacts": [],
+      "updatedAt": "2026-04-26"
+    },
+    "7": {
+      "status": "not-started",
+      "artifacts": [],
+      "updatedAt": "2026-04-26"
+    },
+    "2a": {
+      "status": "pending-human",
+      "artifacts": [],
+      "updatedAt": "2026-04-26"
+    },
+    "2b": {
+      "status": "pending-human",
+      "artifacts": [],
+      "updatedAt": "2026-04-26"
+    },
+    "2c": {
+      "status": "pending-human",
+      "artifacts": [
+        "docs/legacy/SECURITY_BASELINE.md"
+      ],
+      "updatedAt": "2026-04-26"
+    }
+  }
+}
