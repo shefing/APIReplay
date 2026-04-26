@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 body {
     width: 785px;
     height: 600px;
@@ -9,6 +13,24 @@ body {
 #apiPreview {
     height: 220px;
     overflow-y: auto;
+}
+
+.tab-button {
+    background-color: #e5e7eb;
+    color: #374151;
+}
+
+.tab-button:hover {
+    background-color: #d1d5db;
+}
+
+.tab-button-active {
+    background-color: #3b82f6;
+    color: #ffffff;
+}
+
+.tab-button-active:hover {
+    background-color: #2563eb;
 }
 
 .disabled {
@@ -75,6 +97,24 @@ body.dark {
 
 .dark #apiPreview {
     background-color: #1a1a1a;
+}
+
+.dark .tab-button {
+    background-color: #374151;
+    color: #e5e7eb;
+}
+
+.dark .tab-button:hover {
+    background-color: #4b5563;
+}
+
+.dark .tab-button-active {
+    background-color: #2563eb;
+    color: #ffffff;
+}
+
+.dark .tab-button-active:hover {
+    background-color: #1d4ed8;
 }
 
 .dark .bg-gray-100 {

@@ -1,104 +1,106 @@
-# Network Traffic Recorder and Replayer Chrome Extension
-![image](https://github.com/user-attachments/assets/21855769-dcd5-447e-9ec0-f5f3668d308a)
+# API Replay
 
-## Introduction
+API Replay is a Chrome MV3 extension for recording and replaying network/API traffic to make frontend debugging, QA, and demos deterministic.
 
-Mockit - the Network Traffic Recorder and Replayer is a powerful Chrome extension designed to capture and replay network requests. It's an invaluable tool for developers, QA engineers, and anyone who needs to debug, test, or demonstrate web applications with consistent network behavior.
+## Key capabilities
 
-## Features
+- Record requests by URL filter.
+- Replay captured responses with optional fallback matching.
+- Edit saved response payloads and status codes.
+- Manage multiple recordings (rename, duplicate, delete, import, export).
+- Use presets for common filters.
+- Search requests by URL/method/status.
+- Enable/disable replay per request.
+- Simulate replay latency (`latencyMs` or range).
+- View replay stats (matched/unmatched/hit counts).
+- Toggle recording with keyboard shortcut (`Alt+Shift+R`).
 
-- Record network traffic for specific API endpoints
-- Replay recorded network traffic
-- Filter requests by URL patterns
-- Export and import recordings
-- Fallback matching for flexible request replaying
-- Visual indication of recording/replaying status
-- Edit API responses directly in the extension
-- Dark mode for comfortable viewing in different environments
-- API preview with replay counts for each endpoint
-- Manage multiple recordings with an improved user interface
-- Real-time recording updates in the API preview
-- Ability to rename recordings
-- Ability to duplicate recordings
+## Architecture overview
 
-## Installation
+- `src/background/`: modular MV3 service worker (`main`, `recorder`, `replayer`, `messaging`, `state-store`, `logger`).
+- `src/popup/`: popup UI with components and storage/import-export services.
+- `src/shared/`: typed message/storage/recording contracts.
+- Storage model uses versioned, UUID-keyed recordings with migration support.
 
-1. Download the latest release of the extension from the GitHub releases page.
-2. Unzip the downloaded file.
-3. Open Google Chrome and navigate to `chrome://extensions/`.
-4. Enable "Developer mode" in the top right corner.
-5. Click "Load unpacked" and select the unzipped extension folder.
-6. The extension icon should now appear in your Chrome toolbar.
+## Local development
 
-## Usage
+```bash
+npm ci
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+```
 
-### Recording Network Traffic
+Useful scripts:
 
-1. Click on the extension icon to open the popup.
-2. Enter a name for your recording in the "Recording Name" field.
-3. (Optional) Modify the filter in the "Filter" field. By default, it captures requests containing "/api" in the URL. You can add multiple filters separated by commas (e.g., "/api, /graphql, /v1").
-4. Click the "Start Recording" button.
-5. Navigate to the website you want to record traffic from.
-6. The API preview will update in real-time as requests are captured.
+- `npm run dev` - Vite dev mode.
+- `npm run package` - builds and creates `dist.zip`.
+- `npm run test:e2e` - Playwright extension smoke test.
 
-### Replaying Network Traffic
+## Load unpacked extension
 
-1. Open the extension popup.
-2. Select a recording from the dropdown menu.
-3. (Optional) Check the "Enable fallback matching for similar paths" checkbox for more flexible request matching.  This option allows for more flexible matching of requests during replay.
-4. Click the "Replay" button.
-5. Navigate to the website where you want to replay the traffic.
-6. The extension will intercept and respond to matching requests with the recorded data.
-7. Click "Stop Replaying" when you're done.
+1. Build the extension (`npm run build`).
+2. Open `chrome://extensions/`.
+3. Enable Developer mode.
+4. Click `Load unpacked` and select the `dist/` folder.
 
-### Managing Recordings
+## CI and release
 
-- **Export**: Select a recording and click the "Export" button to save it as a JSON file.
-- **Import**: Click the "Import" button and select a previously exported JSON file to add it to your recordings.
-- **Delete**: Select a recording and click the "Delete" button to remove it from the extension.
-- **Remove All**: Click the "Remove All" button to delete all recordings (with confirmation).
+- CI workflow: `.github/workflows/ci.yml` runs lint, typecheck, tests, build, package, and uploads `dist.zip`.
+- Release workflow: `.github/workflows/release.yml` runs on tags `v*`, validates tag vs `manifest.version`, and attaches `dist.zip` to the GitHub release.
 
-### API Preview and Editing
+## Security and privacy
 
-- The extension provides an API preview that shows all captured API paths for the selected recording.
-- It displays the number of times each path has been replayed in the current session.
-- The API preview updates in real-time during recording.
-- Click on an API path to view and edit its details, including the response body.
-- Make changes to the response body and click "Save Changes" to update the recording.
-- You can rename recordings by selecting a recording and clicking the 'Rename' option in the File menu.
-- You can duplicate recordings by selecting a recording and clicking the 'Duplicate' option in the File menu.
+- See `SECURITY.md` for vulnerability reporting guidance.
+- See `PRIVACY.md` for data handling and permission rationale.
+- Chrome Web Store assets/rationale are in `docs/store/`.
 
-### Dark Mode
+## Documentation
 
-- Toggle dark mode by clicking the moon icon in the top right corner of the extension popup.
-- Dark mode provides a more comfortable viewing experience in low-light environments.
+- `CHANGELOG.md`
+- `CONTRIBUTING.md`
+- `SECURITY.md`
+- `PRIVACY.md`
+- `docs/playwright-integration.md`
 
-## Troubleshooting
+## Use recordings in Playwright
 
-- If the extension isn't working, make sure it has the necessary permissions to access the websites you're trying to record or replay.
-- Check the browser console for any error messages related to the extension.
-- If you encounter issues with specific websites, try disabling other extensions that might interfere with network requests.
-- If editing an API response fails, ensure that the response body is valid JSON (if applicable).
+You can reuse exported `API Replay` JSON files directly in Playwright tests.
 
-## Contributing
+```ts
+import path from 'node:path';
+import { test, expect } from '@playwright/test';
+import { applyRecordingMocks } from './tests/helpers/recording-mock';
 
-We welcome contributions to improve the Network Traffic Recorder and Replayer! Here's how you can contribute:
+test('uses an exported recording as API mocks', async ({ context, page }) => {
+  const recordingPath = path.resolve(
+    process.cwd(),
+    'tests/fixtures/recordings/playwright-demo-recording.json'
+  );
 
-1. Fork the repository.
-2. Create a new branch for your feature or bug fix.
-3. Make your changes and commit them with clear, descriptive messages.
-4. Push your changes to your fork.
-5. Submit a pull request to the main repository.
+  const mock = await applyRecordingMocks(context, recordingPath, {
+    fallbackMatching: true,
+    strictUnmatched: false
+  });
 
-Please ensure your code adheres to the existing style and includes appropriate tests and documentation.
+  try {
+    await page.goto('https://example.test');
+    const body = await page.evaluate(async () => {
+      const response = await fetch('https://api.example.com/users/me');
+      return response.json();
+    });
+
+    expect(body).toEqual({ id: 'u_123', name: 'API Replay' });
+  } finally {
+    await mock.dispose();
+  }
+});
+```
+
+See `docs/playwright-integration.md` for full workflow and strict-mode guidance.
 
 ## License
 
-This project is licensed under the Apache 2 License. See the LICENSE file for details.
-
-## Support
-
-If you encounter any issues or have questions, please file an issue on the GitHub repository.
-
-Happy recording and replaying!
+Apache 2.0 - see `LICENSE`.
 

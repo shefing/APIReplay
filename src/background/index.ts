@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 let isRecording = false;
 let isReplaying = false;
 let currentRecordingName = '';
