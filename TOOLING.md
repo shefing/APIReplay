@@ -42,7 +42,7 @@ Artifact templates used by the CLI and MCP server live in [`.isdlc/templates/`](
 | Template | Purpose | Populated by |
 |---|---|---|
 | `plan.md` | Plan → Build → Review plan with Objective, Gherkin ACs, DO-NOT, Context refs | `isdlc plan new` |
-| `adr.md` | Architecture Decision Record | `isdlc adr new` / `isdlc.recordADR` |
+| `adr.md` | Architecture Decision Record | `isdlc adr new` / `isdlc_recordADR` |
 | `state.md` | STATE.md with Current Position + Session Continuity block | greenfield scaffold, `isdlc state sync` |
 | `quirks.md` | Bug-as-Feature register (Legacy Onboarding Step 1) | `isdlc onboard` |
 | `pr.md` | PR template enforcing PROCESS.md §2.05 (5 artifacts) + DoD §3 | committed to `.github/PULL_REQUEST_TEMPLATE.md` on scaffold |
@@ -103,11 +103,11 @@ No edits to the rule source are required — the whole point is that all agents 
 
 | Tool | Purpose |
 |---|---|
-| `isdlc.getStage` | Current stage + Session Continuity snapshot from `STATE.md`. |
-| `isdlc.getEntryDoor` | New (greenfield) vs Existing (current Legacy step). |
-| `isdlc.getQuirks` | Must-preserve behaviors from `QUIRKS.md`. |
-| `isdlc.getPlan` | Active plan under `plans/` (or `which: "all"`). |
-| `isdlc.runDoctor` | Runs `isdlc doctor --json`. |
+| `isdlc_getStage` | Current stage + Session Continuity snapshot from `STATE.md`. |
+| `isdlc_getEntryDoor` | New (greenfield) vs Existing (current Legacy step). |
+| `isdlc_getQuirks` | Must-preserve behaviors from `QUIRKS.md`. |
+| `isdlc_getPlan` | Active plan under `plans/` (or `which: "all"`). |
+| `isdlc_runDoctor` | Runs `isdlc doctor --json`. |
 
 ### Write tools (delegate to the CLI)
 
@@ -115,10 +115,10 @@ Each write tool shells out to `@isdlc/cli` — the CLI is the single source of t
 
 | Tool | Wraps | Notes |
 |---|---|---|
-| `isdlc.recordADR({ title })` | `isdlc adr new <title> --yes` | Returns the created file path under `docs/adr/`. |
-| `isdlc.logTechDebt({ item, whyDeferred?, tracking? })` | `isdlc debt add <item> [--reason ...] [--tracking ...]` | Fails loudly if `TECH_DEBT.md` is missing. |
-| `isdlc.updateState({ confirm? })` | `isdlc state sync [--confirm]` | `confirm` defaults to `false`; Session Continuity stays `Human confirmation required? Yes` unless the human has explicitly approved. |
-| `isdlc.graduate({ force? })` | `isdlc graduate [--force]` | Refuses on a fresh repo with no `.isdlc/onboarding.json`; refuses unless every Legacy step is `confirmed`/`skipped`. `force: true` produces a DRAFT. |
+| `isdlc_recordADR({ title })` | `isdlc adr new <title> --yes` | Returns the created file path under `docs/adr/`. |
+| `isdlc_logTechDebt({ item, whyDeferred?, tracking? })` | `isdlc debt add <item> [--reason ...] [--tracking ...]` | Fails loudly if `TECH_DEBT.md` is missing. |
+| `isdlc_updateState({ confirm? })` | `isdlc state sync [--confirm]` | `confirm` defaults to `false`; Session Continuity stays `Human confirmation required? Yes` unless the human has explicitly approved. |
+| `isdlc_graduate({ force? })` | `isdlc graduate [--force]` | Refuses on a fresh repo with no `.isdlc/onboarding.json`; refuses unless every Legacy step is `confirmed`/`skipped`. `force: true` produces a DRAFT. |
 
 **Human-in-the-loop invariant:** agents MUST NOT pass `confirm: true` to `updateState` or `force: true` to `graduate` without an explicit human go-ahead. These flags exist only to let a human move past a stop point; they are never an agent's decision to make.
 
@@ -190,7 +190,7 @@ Prefer the per-repo variant for monorepos where each project has its own iSDLC s
 From any project scaffolded with `isdlc init`:
 
 1. Open the IDE; the agent should list `isdlc` among its available MCP servers.
-2. Ask the agent: *"Call `isdlc.getStage` and summarize."* — it should return the current stage, entry door, and active plan.
+2. Ask the agent: *"Call `isdlc_getStage` and summarize."* — it should return the current stage, entry door, and active plan.
 3. Run `npm -w @isdlc/mcp test` inside the iSDLC repo to confirm the smoke test still passes end-to-end.
 
 ### Guardrail
@@ -211,7 +211,7 @@ The server preserves the "deliberation, not bureaucracy" line stated in `MANIFES
 
 ## 6. Entry Doors — New vs Existing
 
-The first question the tooling asks any human is **New project or Existing?** — this is encoded in `isdlc init` (Phase A) and in the MCP `isdlc.getEntryDoor()` tool (Phase A½). See Section 7 below for the full flow.
+The first question the tooling asks any human is **New project or Existing?** — this is encoded in `isdlc init` (Phase A) and in the MCP `isdlc_getEntryDoor` tool (Phase A½). See Section 7 below for the full flow.
 
 ## 7. End-User Flow Diagram
 

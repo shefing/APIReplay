@@ -2,7 +2,7 @@
   "version": 1,
   "path": "/Users/tsemachhadad/dev/APIReplay",
   "startedAt": "2026-04-26",
-  "updatedAt": "2026-04-26",
+  "updatedAt": "2026-04-27",
   "steps": {
     "0": {
       "status": "pending-human",
@@ -17,7 +17,8 @@
       "artifacts": [
         "docs/legacy/DISCOVERY.md"
       ],
-      "updatedAt": "2026-04-26"
+      "updatedAt": "2026-04-27",
+      "notes": "Discovery completed with personas, architecture mapping, and strategic intent recovery; awaiting human review."
     },
     "3": {
       "status": "not-started",
@@ -46,20 +47,30 @@
     },
     "2a": {
       "status": "pending-human",
-      "artifacts": [],
-      "updatedAt": "2026-04-26"
+      "artifacts": [
+        "SPEC.md",
+        "ROADMAP.md"
+      ],
+      "updatedAt": "2026-04-27",
+      "notes": "Retro intent and roadmap reconstructed for APIReplay migration context."
     },
     "2b": {
       "status": "pending-human",
-      "artifacts": [],
-      "updatedAt": "2026-04-26"
+      "artifacts": [
+        "QUIRKS.md",
+        "TECH_DEBT.md"
+      ],
+      "updatedAt": "2026-04-27",
+      "notes": "Quirks baseline and debt seed created; characterization tests deferred to Step 3."
     },
     "2c": {
       "status": "pending-human",
       "artifacts": [
-        "docs/legacy/SECURITY_BASELINE.md"
+        "docs/legacy/SECURITY_BASELINE.md",
+        "docs/legacy/sbom.cdx.json"
       ],
-      "updatedAt": "2026-04-26"
+      "updatedAt": "2026-04-27",
+      "notes": "SBOM + vuln + license baseline captured; secret scan and human sign-off still pending."
     }
   }
 }
