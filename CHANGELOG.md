@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
+## [1.0.7] - 2026-05-03
+### Fixed
+- POST requests are now reliably recorded even when Chrome does not fire `Network.requestWillBeSent` before `Fetch.requestPaused` (or fires it with a non-matching id). The Fetch handler now synthesizes a request entry from `params.request` when no pending entry exists, applying the recording's URL filter.
+
+### Added
+- Unit tests for the recorder (`tests/unit/recorder.test.ts`) covering: POST recorded with no prior `Network.requestWillBeSent`, URL-filter exclusion of non-`/api` requests, and matching by `networkId` when the pending entry exists.
+
 ## [1.0.6] - 2026-05-03
 ### Fixed
 - POST requests (and other requests with large bodies) no longer silently disappear from recordings. The root cause was that Chrome does not reliably fire `Network.loadingFinished` when Fetch interception is active; requests are now persisted directly inside the `Fetch.requestPaused` handler as soon as the response body is available.
