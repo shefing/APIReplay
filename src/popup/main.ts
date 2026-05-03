@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const presetsList = document.getElementById('presetsList');
     const savePresetBtn = document.getElementById('savePreset');
     const closePresetsBtn = document.getElementById('closePresets');
-    const replayStatsPanel = document.getElementById('replayStatsPanel');
     const latencyMsInput = document.getElementById('latencyMs');
     const latencyRangeInput = document.getElementById('latencyRange');
     const urlMappingsInput = document.getElementById('urlMappings') as HTMLTextAreaElement | null;
@@ -131,18 +130,11 @@ document.addEventListener('DOMContentLoaded', () => {
             recordingSelect.value = response.currentRecordingName;
             setActiveTab('replay');
             document.body.classList.add('is-replaying');
-            replayStatsPanel?.classList.remove('hidden');
-            void refreshReplayStats();
         }
     });
 
     loadRecordings();
     void loadPresets();
-    setInterval(() => {
-        if (isReplaying) {
-            void refreshReplayStats();
-        }
-    }, 1000);
 
     recordButton.addEventListener('click', () => {
         if (isRecording) {
@@ -262,10 +254,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 isReplaying = true;
                 updateButtonStates();
                 updateStatusIndicator();
-                replayStatsPanel.classList.remove('hidden');
                 document.body.classList.add('is-replaying');
                 setActiveTab('replay');
-                void refreshReplayStats();
             } else {
                 alert('Failed to start replaying: ' + (response ? response.error : 'Unknown error'));
             }
@@ -281,7 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 isReplaying = false;
                 updateButtonStates();
                 updateStatusIndicator();
-                replayStatsPanel.classList.add('hidden');
                 document.body.classList.remove('is-replaying');
                 console.log('Replaying stopped successfully');
             } else {
@@ -816,22 +805,6 @@ document.addEventListener('DOMContentLoaded', () => {
         await loadPresets();
     });
 
-    async function refreshReplayStats() {
-        chrome.runtime.sendMessage({ action: 'getReplayStats' }, (response) => {
-            if (!response?.success || !response.replayStats) {
-                return;
-            }
-            const stats = response.replayStats;
-            const unmatched = stats.unmatched || 0;
-            const recent = (stats.unmatchedUrls || []).slice(-5).join(' | ');
-            replayStatsPanel.innerHTML = `
-              <div><strong>Replay stats</strong> <span class="opacity-60 text-xs">(only requests within the recording's URL filter are counted)</span></div>
-              <div>Matched: <strong>${stats.matched || 0}</strong></div>
-              <div class="opacity-70 text-xs">Unmatched (in-scope only): ${unmatched}</div>
-              ${unmatched > 0 && recent ? `<div class="opacity-60 text-xs">Recent unmatched: ${recent}</div>` : ''}
-            `;
-        });
-    }
 
 
     exportImportDropdown.addEventListener('click', () => {

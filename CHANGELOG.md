@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
+## [1.0.15] - 2026-05-03
+### Changed
+- Removed the Replay stats panel (Matched / Unmatched / Recent unmatched). The per-row green ● match indicator on the API requests list is now the single source of truth.
+- Replay configuration (fallback matching, latency, latency range, URL mappings) is collapsed under a toggleable **Advanced settings** `<details>` block in the Replay tab to reduce vertical clutter.
+- Captured Requests table is now fixed-layout: long URLs are truncated in the **Path** cell with the full URL shown on hover via a `title` tooltip.
+- **Status** column is now a colored circular badge (green 2xx / blue 3xx / amber 4xx / red 5xx / gray for none); click the badge to edit the status. The numeric value is in the tooltip.
+- **Hits** column is now a small colored pill badge with the hit count and a descriptive tooltip.
+
 ## [1.0.14] - 2026-05-03
 ### Changed
 - Replay status indicator moved above the Record/Replay tab buttons so the current state is visible regardless of the active tab.

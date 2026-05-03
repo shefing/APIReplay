@@ -13,19 +13,36 @@ export function renderApiPaths(
   const isReplaying = options.isReplaying === true;
   const rows = Object.entries(requests).sort(([a], [b]) => a.localeCompare(b));
 
+  function statusColorClass(status: number | undefined): string {
+    if (typeof status !== 'number') return 'bg-gray-300 dark:bg-gray-600';
+    if (status >= 500) return 'bg-red-500';
+    if (status >= 400) return 'bg-amber-500';
+    if (status >= 300) return 'bg-blue-500';
+    if (status >= 200) return 'bg-green-500';
+    return 'bg-gray-400';
+  }
+
   container.innerHTML = `
     <h4 class="font-semibold mb-1 text-xs">API Requests:</h4>
     ${rows.length === 0 ? '<div class="text-xs opacity-70">No matching requests.</div>' : `
-      <div class="overflow-auto border border-gray-300 dark:border-gray-600 rounded">
-        <table class="w-full text-xs">
+      <div class="border border-gray-300 dark:border-gray-600 rounded">
+        <table class="w-full text-xs table-fixed">
+          <colgroup>
+            <col style="width: 2.2rem">
+            <col style="width: 1.4rem">
+            <col style="width: 3.2rem">
+            <col>
+            <col style="width: 1.6rem">
+            <col style="width: 1.6rem">
+          </colgroup>
           <thead class="bg-gray-200 dark:bg-gray-800">
             <tr>
-              <th class="text-left p-1" title="Include this request when replaying">Replay</th>
+              <th class="text-left p-1" title="Include this request when replaying">▶</th>
               <th class="text-left p-1" title="${isReplaying ? 'Green = matched at least once during replay; gray = not yet matched' : 'Match indicator is shown during replay'}">●</th>
               <th class="text-left p-1">Method</th>
               <th class="text-left p-1">Path</th>
-              <th class="text-left p-1">Status</th>
-              <th class="text-left p-1">Hits</th>
+              <th class="text-left p-1" title="HTTP response status (color-coded). Click to edit.">St</th>
+              <th class="text-left p-1" title="Replay hits for this recorded path">#</th>
             </tr>
           </thead>
           <tbody>
@@ -35,7 +52,8 @@ export function renderApiPaths(
                 const path = url.pathname + url.search;
                 const pathWithoutQuery = path.split('?')[0];
                 const replayCount = requestHitCounts[pathWithoutQuery] || 0;
-                const statusValue = typeof request.status === 'number' ? String(request.status) : '';
+                const statusNum = typeof request.status === 'number' ? request.status : undefined;
+                const statusText = statusNum !== undefined ? String(statusNum) : '—';
                 const enabled = request.enabled !== false;
                 const matchHits = matchedKeys[key] || 0;
                 const matchColor = !isReplaying
@@ -48,6 +66,17 @@ export function renderApiPaths(
                   : matchHits > 0
                     ? `Matched ${matchHits} time(s) during current replay`
                     : 'Not matched yet during current replay';
+                const fullUrlAttr = request.url.replace(/"/g, '&quot;');
+                const pathAttr = path.replace(/"/g, '&quot;');
+                const statusTitle = statusNum !== undefined
+                  ? `Response status: ${statusNum} (click to edit)`
+                  : 'No status recorded (click to set)';
+                const hitsTitle = replayCount > 0
+                  ? `${replayCount} replay hit(s) on this path`
+                  : 'No replay hits yet on this path';
+                const hitsClass = replayCount > 0
+                  ? 'bg-green-500 text-white'
+                  : 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300';
                 return `
                   <tr class="border-t border-gray-200 dark:border-gray-700${isReplaying && matchHits > 0 ? ' bg-green-50 dark:bg-green-900/20' : ''}">
                     <td class="p-1">
@@ -55,19 +84,22 @@ export function renderApiPaths(
                     </td>
                     <td class="p-1 text-center ${matchColor}" title="${matchTitle}">●</td>
                     <td class="p-1">${request.method}</td>
-                    <td class="p-1 cursor-pointer hover:text-blue-500" data-path="${path}">${path}</td>
-                    <td class="p-1">
-                      <input
-                        type="number"
-                        min="100"
-                        max="599"
-                        class="request-status-input w-16 px-1 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-transparent"
+                    <td class="p-1 cursor-pointer hover:text-blue-500 truncate" data-path="${pathAttr}" title="${fullUrlAttr}">${path}</td>
+                    <td class="p-1 text-center">
+                      <button
+                        type="button"
+                        class="request-status-icon inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold text-white ${statusColorClass(statusNum)}"
                         data-request-key="${encodeURIComponent(key)}"
-                        value="${statusValue}"
-                        placeholder="-"
-                      >
+                        data-status="${statusNum ?? ''}"
+                        title="${statusTitle}"
+                      >${statusText}</button>
                     </td>
-                    <td class="p-1">${replayCount}</td>
+                    <td class="p-1 text-center">
+                      <span
+                        class="inline-flex items-center justify-center min-w-[1.1rem] h-5 px-1 rounded-full text-[10px] font-semibold ${hitsClass}"
+                        title="${hitsTitle}"
+                      >${replayCount}</span>
+                    </td>
                   </tr>
                 `;
               })
@@ -98,37 +130,30 @@ export function renderApiPaths(
     });
   });
 
-  container.querySelectorAll('.request-status-input').forEach((element) => {
-    const input = element as HTMLInputElement;
-    const applyStatusUpdate = () => {
-      const encodedKey = input.getAttribute('data-request-key');
+  container.querySelectorAll('.request-status-icon').forEach((element) => {
+    const button = element as HTMLButtonElement;
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const encodedKey = button.getAttribute('data-request-key');
       if (!encodedKey) {
         return;
       }
-
-      const trimmed = input.value.trim();
+      const current = button.getAttribute('data-status') || '';
+      const input = window.prompt('Set response status (100-599, empty to clear):', current);
+      if (input === null) {
+        return;
+      }
+      const trimmed = input.trim();
       if (trimmed.length === 0) {
         onUpdateStatus(decodeURIComponent(encodedKey), undefined);
         return;
       }
-
       const parsed = Number(trimmed);
       if (!Number.isFinite(parsed) || parsed < 100 || parsed > 599) {
-        input.classList.add('border-red-500');
+        alert('Status must be a number between 100 and 599.');
         return;
       }
-
-      input.classList.remove('border-red-500');
       onUpdateStatus(decodeURIComponent(encodedKey), Math.floor(parsed));
-    };
-
-    input.addEventListener('blur', applyStatusUpdate);
-    input.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        applyStatusUpdate();
-        input.blur();
-      }
     });
   });
 }
