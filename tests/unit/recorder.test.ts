@@ -42,13 +42,12 @@ vi.mock('../../src/shared/storage', () => ({
   })
 }));
 
-beforeEach(() => {
-  for (const k of Object.keys(persisted)) delete persisted[k];
-
+function setupChrome(handlers: Record<string, any> = {}) {
   (globalThis as any).chrome = {
     debugger: {
-      sendCommand: vi.fn(async (_t: unknown, method: string) => {
-        if (method === 'Fetch.getResponseBody') {
+      sendCommand: vi.fn(async (_t: unknown, method: string, _params?: any) => {
+        if (method in handlers) return handlers[method];
+        if (method === 'Network.getResponseBody') {
           return { base64Encoded: false, body: '{"ok":true}' };
         }
         return undefined;
@@ -58,24 +57,76 @@ beforeEach(() => {
     tabs: { query: vi.fn(), reload: vi.fn() },
     storage: { local: { get: vi.fn(), set: vi.fn() }, session: { get: vi.fn(), set: vi.fn() } }
   };
+}
+
+beforeEach(() => {
+  for (const k of Object.keys(persisted)) delete persisted[k];
+  setupChrome();
 });
 
-describe('onRecorderEvent — Fetch.requestPaused', () => {
-  it('records a POST when Network.requestWillBeSent did not fire (no pending entry)', async () => {
+describe('onRecorderEvent — Network.* flow', () => {
+  it('records a GET request through requestWillBeSent → responseReceived → loadingFinished', async () => {
     const store = createStore({});
 
-    await onRecorderEvent(store, 1, 'Fetch.requestPaused', {
-      requestId: 'FETCH-42',
-      networkId: undefined,
+    await onRecorderEvent(store, 1, 'Network.requestWillBeSent', {
+      requestId: 'NET-1',
+      timestamp: 0,
+      request: {
+        url: 'https://example.com/api/users',
+        method: 'GET',
+        headers: { accept: 'application/json' }
+      }
+    });
+    await onRecorderEvent(store, 1, 'Network.responseReceived', {
+      requestId: 'NET-1',
+      response: {
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'application/json' }
+      }
+    });
+    await onRecorderEvent(store, 1, 'Network.loadingFinished', { requestId: 'NET-1' });
+
+    const saved = persisted['rec-1'];
+    expect(saved).toBeDefined();
+    const keys = Object.keys(saved.requests);
+    expect(keys).toHaveLength(1);
+    const req = saved.requests[keys[0]];
+    expect(req.method).toBe('GET');
+    expect(req.status).toBe(200);
+    expect(req.responseBody).toBe('{"ok":true}');
+  });
+
+  it('records a large POST request and captures postData via Network.getRequestPostData when not inlined', async () => {
+    const largeBody = JSON.stringify({
+      meetings: Array.from({ length: 100 }, (_, i) => ({ meetingId: `id-${i}`, companyIds: ['c1'] }))
+    });
+    setupChrome({
+      'Network.getRequestPostData': { postData: largeBody },
+      'Network.getResponseBody': { base64Encoded: false, body: '{"percentages":{}}' }
+    });
+    const store = createStore({});
+
+    // Simulate Chrome NOT inlining postData for large bodies (hasPostData=true, postData missing)
+    await onRecorderEvent(store, 1, 'Network.requestWillBeSent', {
+      requestId: 'NET-POST-1',
+      timestamp: 0,
       request: {
         url: 'https://staging.example.com/api/votes/voting-percentages?meetings=-6f9cf4b3',
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        postData: '{"meetings":[{"meetingId":"abc"}]}'
-      },
-      responseStatusCode: 200,
-      responseHeaders: [{ name: 'content-type', value: 'application/json' }]
+        hasPostData: true
+      }
     });
+    await onRecorderEvent(store, 1, 'Network.responseReceived', {
+      requestId: 'NET-POST-1',
+      response: {
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'application/json' }
+      }
+    });
+    await onRecorderEvent(store, 1, 'Network.loadingFinished', { requestId: 'NET-POST-1' });
 
     const saved = persisted['rec-1'];
     expect(saved).toBeDefined();
@@ -84,61 +135,47 @@ describe('onRecorderEvent — Fetch.requestPaused', () => {
     const req = saved.requests[keys[0]];
     expect(req.method).toBe('POST');
     expect(req.url).toContain('/api/votes/voting-percentages');
-    expect(req.requestBody).toContain('meetingId');
+    expect(req.requestBody).toBe(largeBody);
     expect(req.status).toBe(200);
-    expect(req.responseBody).toBe('{"ok":true}');
-    expect(req.responseHeaders['content-type']).toBe('application/json');
+    expect(req.responseBody).toBe('{"percentages":{}}');
   });
 
-  it('does not record when URL is outside the recording filter', async () => {
+  it('does not record requests outside the URL filter', async () => {
     const store = createStore({ currentFilter: ['/api'] });
 
-    await onRecorderEvent(store, 1, 'Fetch.requestPaused', {
-      requestId: 'FETCH-43',
-      request: {
-        url: 'https://example.com/static/app.js',
-        method: 'GET',
-        headers: {}
-      },
-      responseStatusCode: 200,
-      responseHeaders: []
+    await onRecorderEvent(store, 1, 'Network.requestWillBeSent', {
+      requestId: 'NET-2',
+      timestamp: 0,
+      request: { url: 'https://example.com/static/app.js', method: 'GET', headers: {} }
     });
+    await onRecorderEvent(store, 1, 'Network.loadingFinished', { requestId: 'NET-2' });
 
     expect(persisted['rec-1']).toBeUndefined();
   });
 
-  it('matches an existing pending entry by networkId', async () => {
-    const store = createStore({
-      pendingRequests: {
-        'NET-1': {
-          requestId: 'NET-1',
-          url: 'https://example.com/api/users',
-          method: 'POST',
-          requestHeaders: {},
-          requestBody: '{"x":1}',
-          timestamp: '2026-01-01T00:00:00.000Z'
-        }
-      }
+  it('decodes base64 response bodies (UTF-8 safe) for non-Latin1 content', async () => {
+    const hebrew = 'שלום עולם';
+    // base64 of UTF-8 bytes for "שלום עולם"
+    const utf8Bytes = unescape(encodeURIComponent(hebrew));
+    const b64 = btoa(utf8Bytes);
+    setupChrome({
+      'Network.getResponseBody': { base64Encoded: true, body: b64 }
     });
+    const store = createStore({});
 
-    await onRecorderEvent(store, 1, 'Fetch.requestPaused', {
-      requestId: 'FETCH-1',
-      networkId: 'NET-1',
-      request: {
-        url: 'https://example.com/api/users',
-        method: 'POST',
-        headers: {},
-        postData: '{"x":1}'
-      },
-      responseStatusCode: 201,
-      responseHeaders: [{ name: 'content-type', value: 'application/json' }]
+    await onRecorderEvent(store, 1, 'Network.requestWillBeSent', {
+      requestId: 'NET-3',
+      timestamp: 0,
+      request: { url: 'https://example.com/api/hello', method: 'GET', headers: {} }
     });
+    await onRecorderEvent(store, 1, 'Network.responseReceived', {
+      requestId: 'NET-3',
+      response: { status: 200, statusText: 'OK', headers: {} }
+    });
+    await onRecorderEvent(store, 1, 'Network.loadingFinished', { requestId: 'NET-3' });
 
     const saved = persisted['rec-1'];
-    expect(saved).toBeDefined();
-    const reqs = Object.values(saved.requests);
-    expect(reqs).toHaveLength(1);
-    expect((reqs[0] as any).status).toBe(201);
-    expect((reqs[0] as any).requestBody).toBe('{"x":1}');
+    const keys = Object.keys(saved.requests);
+    expect(saved.requests[keys[0]].responseBody).toBe(hebrew);
   });
 });

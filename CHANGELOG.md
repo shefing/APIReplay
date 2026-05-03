@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
+## [1.0.8] - 2026-05-03
+### Fixed
+- Recording now reliably captures large POST requests (e.g. `/api/votes/voting-percentages`). Removed `Fetch.enable` interception from the recording flow; recording now uses pure `Network.*` debugger events (`requestWillBeSent` → `responseReceived` → `loadingFinished`) and `Network.getResponseBody`, matching the working pre-refactor v0.1 behavior. POST bodies that Chrome does not inline are fetched via `Network.getRequestPostData`.
+### Changed
+- `tests/unit/recorder.test.ts` updated to cover the new `Network.*` flow, including the large-POST regression scenario and UTF-8-safe base64 decoding.
+
 ## [1.0.7] - 2026-05-03
 ### Fixed
 - POST requests are now reliably recorded even when Chrome does not fire `Network.requestWillBeSent` before `Fetch.requestPaused` (or fires it with a non-matching id). The Fetch handler now synthesizes a request entry from `params.request` when no pending entry exists, applying the recording's URL filter.
