@@ -97,7 +97,7 @@ export async function startReplaying(
   }
 
   await chrome.storage.local.set({ replayedRequests: {} });
-  await chrome.storage.session.set({ replayStats: { matched: 0, unmatched: 0, unmatchedUrls: [], hitCount: {} } });
+  await chrome.storage.session.set({ replayStats: { matched: 0, unmatched: 0, unmatchedUrls: [], hitCount: {}, matchedKeys: {} } });
   await chrome.debugger.attach({ tabId: tabs[0].id }, '1.0');
   await chrome.debugger.sendCommand({ tabId: tabs[0].id }, 'Network.enable');
   await chrome.debugger.sendCommand({ tabId: tabs[0].id }, 'Fetch.enable', {
@@ -176,7 +176,7 @@ export async function onReplayerEvent(store: StateStore, tabId: number, message:
   }
 
   const requests = state.recordedData?.requests || state.recordedData || {};
-  const requestValues = Object.values(requests) as Array<any>;
+  const requestEntries = Object.entries(requests) as Array<[string, any]>;
 
   const requestUrl = getEventRequestUrl(params);
   if (!requestUrl) {
@@ -199,17 +199,20 @@ export async function onReplayerEvent(store: StateStore, tabId: number, message:
     return;
   }
 
-  let matched = requestValues.find(
-    (item) => methodsMatch(item.method, incomingMethod) && getPathname(item.url) === incomingPathname
+  let matchedEntry = requestEntries.find(
+    ([, item]) => methodsMatch(item.method, incomingMethod) && getPathname(item.url) === incomingPathname
   );
 
-  if (!matched && state.fallbackMatchingEnabled) {
-    matched = requestValues.find((item) => {
+  if (!matchedEntry && state.fallbackMatchingEnabled) {
+    matchedEntry = requestEntries.find(([, item]) => {
       if (!methodsMatch(item.method, incomingMethod)) return false;
       const candidatePath = getPathname(item.url);
       return candidatePath.split('/').filter(Boolean).length === incomingPathname.split('/').filter(Boolean).length;
     });
   }
+
+  const matched = matchedEntry?.[1];
+  const matchedKey = matchedEntry?.[0];
 
   if (!matched) {
     const replayStatsData = await chrome.storage.session.get('replayStats');
@@ -233,10 +236,14 @@ export async function onReplayerEvent(store: StateStore, tabId: number, message:
   await chrome.storage.local.set({ replayedRequests });
 
   const replayStatsData = await chrome.storage.session.get(['replayStats', 'replayOptions']);
-  const replayStats = replayStatsData.replayStats || { matched: 0, unmatched: 0, unmatchedUrls: [], hitCount: {} };
+  const replayStats = replayStatsData.replayStats || { matched: 0, unmatched: 0, unmatchedUrls: [], hitCount: {}, matchedKeys: {} };
   replayStats.matched += 1;
   replayStats.hitCount = replayStats.hitCount || {};
   replayStats.hitCount[path] = (replayStats.hitCount[path] || 0) + 1;
+  if (matchedKey) {
+    replayStats.matchedKeys = replayStats.matchedKeys || {};
+    replayStats.matchedKeys[matchedKey] = (replayStats.matchedKeys[matchedKey] || 0) + 1;
+  }
   await chrome.storage.session.set({ replayStats });
 
   const latency = resolveLatency(replayStatsData.replayOptions);

@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
+## [1.0.14] - 2026-05-03
+### Changed
+- Replay status indicator moved above the Record/Replay tab buttons so the current state is visible regardless of the active tab.
+- Per-request match indicator: each row in the API requests list now shows a green ● when it has been matched at least once during the current replay (gray when not yet matched, faded when not replaying). Matched rows are highlighted with a subtle green tint. Replaces the previous reliance on the global Matched/Unmatched stats which under-counted because of de-duplication by path.
+
 ## [1.0.13] - 2026-05-03
 ### Changed
 - Replay stats now only count requests within the recording's URL filter (e.g. `/api`). Out-of-scope analytics calls (e.g. `/ingest/*`) no longer pollute Matched/Unmatched counters.

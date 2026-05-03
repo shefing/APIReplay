@@ -472,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return (requestSearchInput?.value || '').trim().toLowerCase();
     }
 
-    function renderPreviewList(container, recordingName, requests, requestHitCounts) {
+    function renderPreviewList(container, recordingName, requests, requestHitCounts, matchedKeys = {}) {
         if (!container) {
             return;
         }
@@ -499,7 +499,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     updateApiPreview();
                 });
-            }
+            },
+            { matchedKeys, isReplaying }
         );
     }
 
@@ -555,9 +556,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         ...replayedRequests,
                         ...replayStatsHitCount
                     };
+                    const matchedKeys = replaySessionData.replayStats?.matchedKeys || {};
 
-                    renderPreviewList(apiPreviewDiv, name, filteredRequests, requestHitCounts);
-                    renderPreviewList(recordApiPreviewDiv, name, allRequests, requestHitCounts);
+                    renderPreviewList(apiPreviewDiv, name, filteredRequests, requestHitCounts, matchedKeys);
+                    renderPreviewList(recordApiPreviewDiv, name, allRequests, requestHitCounts, matchedKeys);
                 })
                 .catch((error) => {
                     console.error('Load recording error:', error);

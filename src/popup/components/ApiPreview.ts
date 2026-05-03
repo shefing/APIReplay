@@ -6,8 +6,11 @@ export function renderApiPaths(
   requestHitCounts: Record<string, number>,
   onSelectPath: (path: string) => void,
   onToggleEnabled: (requestKey: string, enabled: boolean) => void,
-  onUpdateStatus: (requestKey: string, status: number | undefined) => void
+  onUpdateStatus: (requestKey: string, status: number | undefined) => void,
+  options: { matchedKeys?: Record<string, number>; isReplaying?: boolean } = {}
 ) {
+  const matchedKeys = options.matchedKeys || {};
+  const isReplaying = options.isReplaying === true;
   const rows = Object.entries(requests).sort(([a], [b]) => a.localeCompare(b));
 
   container.innerHTML = `
@@ -17,7 +20,8 @@ export function renderApiPaths(
         <table class="w-full text-xs">
           <thead class="bg-gray-200 dark:bg-gray-800">
             <tr>
-              <th class="text-left p-1">Replay</th>
+              <th class="text-left p-1" title="Include this request when replaying">Replay</th>
+              <th class="text-left p-1" title="${isReplaying ? 'Green = matched at least once during replay; gray = not yet matched' : 'Match indicator is shown during replay'}">●</th>
               <th class="text-left p-1">Method</th>
               <th class="text-left p-1">Path</th>
               <th class="text-left p-1">Status</th>
@@ -33,11 +37,23 @@ export function renderApiPaths(
                 const replayCount = requestHitCounts[pathWithoutQuery] || 0;
                 const statusValue = typeof request.status === 'number' ? String(request.status) : '';
                 const enabled = request.enabled !== false;
+                const matchHits = matchedKeys[key] || 0;
+                const matchColor = !isReplaying
+                  ? 'text-gray-300 dark:text-gray-600'
+                  : matchHits > 0
+                    ? 'text-green-500'
+                    : 'text-gray-400 dark:text-gray-500';
+                const matchTitle = !isReplaying
+                  ? 'Match indicator is shown during replay'
+                  : matchHits > 0
+                    ? `Matched ${matchHits} time(s) during current replay`
+                    : 'Not matched yet during current replay';
                 return `
-                  <tr class="border-t border-gray-200 dark:border-gray-700">
+                  <tr class="border-t border-gray-200 dark:border-gray-700${isReplaying && matchHits > 0 ? ' bg-green-50 dark:bg-green-900/20' : ''}">
                     <td class="p-1">
                       <input type="checkbox" class="request-enabled-toggle" data-request-key="${encodeURIComponent(key)}" ${enabled ? 'checked' : ''}>
                     </td>
+                    <td class="p-1 text-center ${matchColor}" title="${matchTitle}">●</td>
                     <td class="p-1">${request.method}</td>
                     <td class="p-1 cursor-pointer hover:text-blue-500" data-path="${path}">${path}</td>
                     <td class="p-1">
