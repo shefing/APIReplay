@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
+## [1.0.12] - 2026-05-03
+### Fixed
+- Record tab now shows the full request list right after stopping recording. Two issues caused it to look "still filtered" while the replay/review tab showed everything: (1) the popup's `newApiCall` live-update listener referenced an undeclared `currentRecordingApis` set and threw on every captured request, so the record-tab list was never updated live; (2) `stopRecording` detached the debugger before the recorder's event queue had a chance to drain, so any `responseReceived` handlers still mid-flight were cancelled. Now the popup declares `currentRecordingApis` properly, and `stopRecording` awaits the recorder queue before detaching.
+
 ## [1.0.11] - 2026-05-03
 ### Fixed
 - Recording now persists requests from `Network.responseReceived` (matching the working v0.1 flow) instead of only from `Network.loadingFinished`. Chrome does not reliably fire `loadingFinished` for some responses (cached, 304 Not Modified, streamed), which previously caused most GETs to be silently dropped — only the POST would survive in the saved recording even though all requests appeared live during recording.

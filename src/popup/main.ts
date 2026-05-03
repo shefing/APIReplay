@@ -84,6 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let presets = [];
     let lastPresetId = '';
     let isUpdating = false;
+    const currentRecordingApis = new Set<string>();
 
     function setActiveTab(tab: 'record' | 'replay') {
         const isRecordTab = tab === 'record';

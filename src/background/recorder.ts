@@ -41,6 +41,17 @@ export async function startRecording(
 }
 
 export async function stopRecording(store: StateStore): Promise<{ success: boolean }> {
+  // Drain the in-flight recorder event queue first so that any responseReceived
+  // handlers that were mid-flight (e.g. still awaiting Network.getResponseBody)
+  // get a chance to persist their request before we detach the debugger.
+  // Without this, users see fewer requests in the popup right after stopping
+  // recording than what is actually in the saved recording.
+  try {
+    await recorderQueue;
+  } catch {
+    // queue errors are already logged inside onRecorderEvent
+  }
+
   const state = await store.patch({ isRecording: false });
   if (state.currentTabId) {
     try {
