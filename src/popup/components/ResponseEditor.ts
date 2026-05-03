@@ -1,11 +1,30 @@
 import type { RecordedRequest } from '../../shared/recording';
 
+function isBase64(str: string): boolean {
+  return /^[A-Za-z0-9+/]*={0,2}$/.test(str) && str.length % 4 === 0 && str.length > 0;
+}
+
+function tryDecodeBase64(str: string): string {
+  try {
+    return decodeURIComponent(escape(atob(str)));
+  } catch {
+    return str;
+  }
+}
+
 export function formatResponseBody(request: RecordedRequest): string {
   if (typeof request.responseBody === 'string') {
+    let body = request.responseBody;
+    if (isBase64(body)) {
+      const decoded = tryDecodeBase64(body);
+      if (decoded !== body) {
+        body = decoded;
+      }
+    }
     try {
-      return JSON.stringify(JSON.parse(request.responseBody), null, 2);
+      return JSON.stringify(JSON.parse(body), null, 2);
     } catch {
-      return request.responseBody;
+      return body;
     }
   }
 

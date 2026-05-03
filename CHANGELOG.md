@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
+## [1.0.5] - 2026-05-03
+### Fixed
+- Editing popup now correctly renders non-Latin1 characters (e.g. Hebrew, Arabic, Chinese) in response bodies that were recorded before v1.0.4 and stored as raw base64.
+
 ## [1.0.4] - 2026-05-03
 ### Fixed
 - Recording no longer silently drops response bodies for POST requests where Chrome assigns a different `networkId` vs `requestId` in the Fetch/Network debugger events (fallback key resolution added).
