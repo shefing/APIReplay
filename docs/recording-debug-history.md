@@ -7,14 +7,14 @@ Some API calls are not being recorded. The user reports that certain URLs (e.g. 
 
 ## What Was Tried (Chronological)
 
-### v1.0.3 — Fix `btoa` crash during replay (Unicode)
+### v0.1.3 — Fix `btoa` crash during replay (Unicode)
 - **Problem:** Replay crashed with `InvalidCharacterError: btoa` for responses containing Hebrew/Unicode.
 - **Fix:** Replaced bare `btoa()` with `btoa(unescape(encodeURIComponent(str)))` in `replayer.ts`.
 - **Result:** ✅ Replay Unicode crash fixed.
 
 ---
 
-### v1.0.4 — Fix POST recording via `networkId`/`requestId` fallback
+### v0.1.4 — Fix POST recording via `networkId`/`requestId` fallback
 - **Problem:** POST requests (e.g. `voting-percentages`) were not being recorded.
 - **Root cause hypothesis:** Chrome assigns different `networkId` vs `requestId` for some requests; the `Fetch.requestPaused` handler looked up `pendingRequests[networkId]` and found nothing.
 - **Fix:** Added fallback: if `networkId` lookup fails, try `requestId`.
@@ -22,21 +22,21 @@ Some API calls are not being recorded. The user reports that certain URLs (e.g. 
 
 ---
 
-### v1.0.6 — Move persistence into `Fetch.requestPaused`
+### v0.1.6 — Move persistence into `Fetch.requestPaused`
 - **Problem:** `Network.loadingFinished` is not reliably fired by Chrome when `Fetch.enable` interception is active.
 - **Fix:** Moved `getResponseBody` + persist logic into `Fetch.requestPaused` handler directly.
 - **Result:** ❌ Still not working for all requests.
 
 ---
 
-### v1.0.7 — Synthesize request entry in `Fetch.requestPaused`
+### v0.1.7 — Synthesize request entry in `Fetch.requestPaused`
 - **Problem:** When `Network.requestWillBeSent` didn't fire before `Fetch.requestPaused`, no `pendingRequests` entry existed and the request was silently dropped.
 - **Fix:** `Fetch.requestPaused` now synthesizes a request entry from `params.request` when no pending entry is found.
 - **Result:** ❌ Still not working.
 
 ---
 
-### v1.0.8 — Revert to pure `Network.*` flow (drop `Fetch.enable`)
+### v0.1.8 — Revert to pure `Network.*` flow (drop `Fetch.enable`)
 - **Problem:** The entire `Fetch.enable` approach was unreliable for large bodies.
 - **Fix:** Removed `Fetch.enable` entirely. Recorder reverted to the pre-refactor v0.1 flow:
   - `Network.requestWillBeSent` → store pending request
@@ -47,21 +47,21 @@ Some API calls are not being recorded. The user reports that certain URLs (e.g. 
 
 ---
 
-### v1.0.9 — Serialize event handlers (fix race condition)
+### v0.1.9 — Serialize event handlers (fix race condition)
 - **Problem:** On busy pages, concurrent `Network.*` events raced on `chrome.storage.session` reads/writes, causing handlers to overwrite each other's `pendingRequests`/`recordedData`.
 - **Fix:** All `onRecorderEvent` calls serialized through a per-process promise queue; state re-read immediately before each patch.
 - **Result:** ✅ Concurrency fixed, but some requests still missing.
 
 ---
 
-### v1.0.10 — Match replay by method + pathname
+### v0.1.10 — Match replay by method + pathname
 - **Problem:** Replay matched only by pathname, so GET and POST on the same path collided.
 - **Fix:** Matcher now requires HTTP method to match in addition to pathname.
 - **Result:** ✅ Replay matching improved.
 
 ---
 
-### v1.0.11 — Persist in `responseReceived`, not `loadingFinished`
+### v0.1.11 — Persist in `responseReceived`, not `loadingFinished`
 - **Problem:** After stopping recording, only POST requests appeared in the saved list even though all requests were visible live.
 - **Root cause:** `Network.loadingFinished` is not reliably fired for cached/304/streamed responses.
 - **Fix:** Moved `getResponseBody` + persist into `Network.responseReceived`.
@@ -69,21 +69,21 @@ Some API calls are not being recorded. The user reports that certain URLs (e.g. 
 
 ---
 
-### v1.0.12 — Fix `currentRecordingApis` ReferenceError + drain queue on stop
+### v0.1.12 — Fix `currentRecordingApis` ReferenceError + drain queue on stop
 - **Problem:** Record tab showed truncated list after stopping; live updates never worked.
 - **Fix:** (1) Declared missing `currentRecordingApis = new Set<string>()` in popup. (2) `stopRecording` now awaits the recorder event queue before detaching debugger.
 - **Result:** ✅ UI fixed.
 
 ---
 
-### v1.0.18 — Swallow debugger detach errors
+### v0.1.18 — Swallow debugger detach errors
 - **Problem:** `Uncaught Error: Detached while handling command` during replay.
 - **Fix:** All `chrome.debugger.sendCommand` calls routed through `safeSendCommand` helper that swallows detach errors.
 - **Result:** ✅ Replay error fixed.
 
 ---
 
-### v1.0.19 (current, not released) — Unique timestamp-based keys
+### v0.1.19 (current, not released) — Unique timestamp-based keys
 - **Problem:** When the same endpoint was called multiple times, only the last response was kept (key collision).
 - **Fix:** `requestKey` now appends a timestamp: `GET /api/config [200] 2026-05-03T...`
 - **Result:** ❓ Not yet confirmed working by user.
