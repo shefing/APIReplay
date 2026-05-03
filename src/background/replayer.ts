@@ -25,13 +25,21 @@ function applyUrlMappings(pathname: string, mappings: UrlMapping[] | undefined):
 }
 
 type ReplayerEventParams = {
-  request?: { url?: string };
+  request?: { url?: string; method?: string };
   interceptionId?: string;
   requestId?: string;
 };
 
 function getEventRequestUrl(params: ReplayerEventParams): string {
   return params.request?.url || '';
+}
+
+function getEventRequestMethod(params: ReplayerEventParams): string {
+  return (params.request?.method || 'GET').toUpperCase();
+}
+
+function methodsMatch(a: string | undefined, b: string | undefined): boolean {
+  return (a || 'GET').toUpperCase() === (b || 'GET').toUpperCase();
 }
 
 async function continueRequest(tabId: number, message: string, params: ReplayerEventParams): Promise<void> {
@@ -179,11 +187,15 @@ export async function onReplayerEvent(store: StateStore, tabId: number, message:
   const urlMappings = replayOptionsData.replayOptions?.urlMappings;
 
   const incomingPathname = applyUrlMappings(getPathname(requestUrl), urlMappings);
+  const incomingMethod = getEventRequestMethod(params);
 
-  let matched = requestValues.find((item) => getPathname(item.url) === incomingPathname);
+  let matched = requestValues.find(
+    (item) => methodsMatch(item.method, incomingMethod) && getPathname(item.url) === incomingPathname
+  );
 
   if (!matched && state.fallbackMatchingEnabled) {
     matched = requestValues.find((item) => {
+      if (!methodsMatch(item.method, incomingMethod)) return false;
       const candidatePath = getPathname(item.url);
       return candidatePath.split('/').filter(Boolean).length === incomingPathname.split('/').filter(Boolean).length;
     });

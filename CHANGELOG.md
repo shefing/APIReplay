@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
+## [1.0.10] - 2026-05-03
+### Fixed
+- Replay now matches recorded requests by **HTTP method + pathname**, not pathname alone. Previously, when a recording contained both a GET and a POST on the same path (e.g. `/api/items`), only the entry that happened to come first in iteration order was returned for every incoming request — which on busy pages typically meant POSTs replied to GETs and vice‑versa. The fallback (length-based) matcher also now requires method to match.
+### Added
+- Regression tests in `tests/unit/replayer.test.ts`: an incoming GET selects the GET-recorded response (not the POST) for the same path, and a method mismatch falls through to `continueRequest`.
+
 ## [1.0.9] - 2026-05-03
 ### Fixed
 - Recording now reliably captures **all** requests on busy pages, not just the first/last. Concurrent network events (`requestWillBeSent` / `responseReceived` / `loadingFinished`) were racing on `chrome.storage.session` reads/writes, causing handlers to overwrite each other's `pendingRequests` and `recordedData` and silently drop most GET requests. The recorder now serializes all events through a per-process promise queue and re-reads the latest state immediately before each `patch`.

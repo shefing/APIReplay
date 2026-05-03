@@ -87,6 +87,71 @@ describe('replayer behavior', () => {
     );
   });
 
+  it('matches the recorded entry whose method matches the incoming request', async () => {
+    store.get.mockResolvedValueOnce({
+      ...(await store.get()),
+      recordedData: {
+        requests: {
+          'POST /api/items [200]': {
+            url: 'https://example.com/api/items',
+            method: 'POST',
+            status: 200,
+            statusText: 'OK',
+            responseBody: '{"from":"post"}'
+          },
+          'GET /api/items [200]': {
+            url: 'https://example.com/api/items',
+            method: 'GET',
+            status: 200,
+            statusText: 'OK',
+            responseBody: '{"from":"get"}'
+          }
+        }
+      }
+    });
+
+    await onReplayerEvent(store as never, 5, 'Network.requestIntercepted', {
+      interceptionId: 'int-method',
+      request: { url: 'https://example.com/api/items', method: 'GET' }
+    });
+
+    const fulfillCall = continueCommand.mock.calls.find(
+      (call) => call[1] === 'Network.continueInterceptedRequest' && (call[2] as any)?.rawResponse
+    );
+    expect(fulfillCall).toBeTruthy();
+    const rawResponse = (fulfillCall![2] as any).rawResponse as string;
+    const decoded = atob(rawResponse);
+    expect(decoded).toContain('"from":"get"');
+    expect(decoded).not.toContain('"from":"post"');
+  });
+
+  it('does not match when method differs and falls through to continueRequest', async () => {
+    store.get.mockResolvedValueOnce({
+      ...(await store.get()),
+      recordedData: {
+        requests: {
+          'POST /api/items [200]': {
+            url: 'https://example.com/api/items',
+            method: 'POST',
+            status: 200,
+            responseBody: '{}'
+          }
+        }
+      }
+    });
+
+    await onReplayerEvent(store as never, 5, 'Network.requestIntercepted', {
+      interceptionId: 'int-mismatch',
+      request: { url: 'https://example.com/api/items', method: 'GET' }
+    });
+
+    expect(continueCommand).toHaveBeenCalledWith(
+      { tabId: 5 },
+      'Network.continueInterceptedRequest',
+      { interceptionId: 'int-mismatch' }
+    );
+  });
+
   it('applies latency from replay options before fulfilling response', async () => {
     storageSessionGet.mockResolvedValueOnce({
       replayStats: { matched: 0, unmatched: 0, unmatchedUrls: [], hitCount: {} },
