@@ -720,6 +720,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Live-refresh the table when replay stats change in session storage so
+    // the per-row match indicator and hit count update during replay.
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== 'session') return;
+        if (!changes.replayStats) return;
+        if (!recordingSelect.value) return;
+        updateApiPreview();
+    });
+
     initRecordingSelect(recordingSelect, document.querySelector('.select-items'), updateApiPreview);
 
     requestSearchInput?.addEventListener('input', () => {

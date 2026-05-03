@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
+## [1.0.16] - 2026-05-03
+### Changed
+- Captured Requests table column order is now **▶ | Status | Method | ● | Path**, so Status is right after the include toggle and Path expands to fill the remaining width.
+- Replay hit count is now shown inside the Status badge as `200 (3)` instead of as a separate column, making the table more compact and clearer.
+### Fixed
+- Per-row match indicator (●) and hit count now update live during replay. The popup listens to `chrome.storage.session` changes for `replayStats`, so each captured replay hit immediately re-renders the row (previously the table only refreshed on `recordingUpdated`/`newApiCall` messages, which the replayer doesn't send).
+
 ## [1.0.15] - 2026-05-03
 ### Changed
 - Removed the Replay stats panel (Matched / Unmatched / Recent unmatched). The per-row green ● match indicator on the API requests list is now the single source of truth.

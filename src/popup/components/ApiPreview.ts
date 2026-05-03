@@ -28,21 +28,19 @@ export function renderApiPaths(
       <div class="border border-gray-300 dark:border-gray-600 rounded">
         <table class="w-full text-xs table-fixed">
           <colgroup>
-            <col style="width: 2.2rem">
-            <col style="width: 1.4rem">
-            <col style="width: 3.2rem">
+            <col style="width: 2rem">
+            <col style="width: 3.4rem">
+            <col style="width: 3rem">
+            <col style="width: 1.2rem">
             <col>
-            <col style="width: 1.6rem">
-            <col style="width: 1.6rem">
           </colgroup>
           <thead class="bg-gray-200 dark:bg-gray-800">
             <tr>
               <th class="text-left p-1" title="Include this request when replaying">▶</th>
-              <th class="text-left p-1" title="${isReplaying ? 'Green = matched at least once during replay; gray = not yet matched' : 'Match indicator is shown during replay'}">●</th>
+              <th class="text-left p-1" title="HTTP response status (color-coded). Click to edit. Number in parentheses = replay hits.">Status</th>
               <th class="text-left p-1">Method</th>
+              <th class="text-left p-1" title="${isReplaying ? 'Green = matched at least once during replay; gray = not yet matched' : 'Match indicator is shown during replay'}">●</th>
               <th class="text-left p-1">Path</th>
-              <th class="text-left p-1" title="HTTP response status (color-coded). Click to edit.">St</th>
-              <th class="text-left p-1" title="Replay hits for this recorded path">#</th>
             </tr>
           </thead>
           <tbody>
@@ -53,7 +51,8 @@ export function renderApiPaths(
                 const pathWithoutQuery = path.split('?')[0];
                 const replayCount = requestHitCounts[pathWithoutQuery] || 0;
                 const statusNum = typeof request.status === 'number' ? request.status : undefined;
-                const statusText = statusNum !== undefined ? String(statusNum) : '—';
+                const statusBase = statusNum !== undefined ? String(statusNum) : '—';
+                const statusText = replayCount > 0 ? `${statusBase} (${replayCount})` : statusBase;
                 const enabled = request.enabled !== false;
                 const matchHits = matchedKeys[key] || 0;
                 const matchColor = !isReplaying
@@ -69,37 +68,28 @@ export function renderApiPaths(
                 const fullUrlAttr = request.url.replace(/"/g, '&quot;');
                 const pathAttr = path.replace(/"/g, '&quot;');
                 const statusTitle = statusNum !== undefined
-                  ? `Response status: ${statusNum} (click to edit)`
+                  ? replayCount > 0
+                    ? `Response status: ${statusNum} • ${replayCount} replay hit(s) (click to edit)`
+                    : `Response status: ${statusNum} (click to edit)`
                   : 'No status recorded (click to set)';
-                const hitsTitle = replayCount > 0
-                  ? `${replayCount} replay hit(s) on this path`
-                  : 'No replay hits yet on this path';
-                const hitsClass = replayCount > 0
-                  ? 'bg-green-500 text-white'
-                  : 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300';
+                const statusBadgeWidth = statusText.length > 3 ? 'min-w-[2.1rem] px-1' : 'w-7';
                 return `
                   <tr class="border-t border-gray-200 dark:border-gray-700${isReplaying && matchHits > 0 ? ' bg-green-50 dark:bg-green-900/20' : ''}">
                     <td class="p-1">
                       <input type="checkbox" class="request-enabled-toggle" data-request-key="${encodeURIComponent(key)}" ${enabled ? 'checked' : ''}>
                     </td>
-                    <td class="p-1 text-center ${matchColor}" title="${matchTitle}">●</td>
-                    <td class="p-1">${request.method}</td>
-                    <td class="p-1 cursor-pointer hover:text-blue-500 truncate" data-path="${pathAttr}" title="${fullUrlAttr}">${path}</td>
-                    <td class="p-1 text-center">
+                    <td class="p-1">
                       <button
                         type="button"
-                        class="request-status-icon inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold text-white ${statusColorClass(statusNum)}"
+                        class="request-status-icon inline-flex items-center justify-center ${statusBadgeWidth} h-5 rounded-full text-[9px] font-bold text-white whitespace-nowrap ${statusColorClass(statusNum)}"
                         data-request-key="${encodeURIComponent(key)}"
                         data-status="${statusNum ?? ''}"
                         title="${statusTitle}"
                       >${statusText}</button>
                     </td>
-                    <td class="p-1 text-center">
-                      <span
-                        class="inline-flex items-center justify-center min-w-[1.1rem] h-5 px-1 rounded-full text-[10px] font-semibold ${hitsClass}"
-                        title="${hitsTitle}"
-                      >${replayCount}</span>
-                    </td>
+                    <td class="p-1">${request.method}</td>
+                    <td class="p-1 text-center ${matchColor}" title="${matchTitle}">●</td>
+                    <td class="p-1 cursor-pointer hover:text-blue-500 truncate" data-path="${pathAttr}" title="${fullUrlAttr}">${path}</td>
                   </tr>
                 `;
               })
