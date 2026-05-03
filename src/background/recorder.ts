@@ -74,6 +74,7 @@ export async function onRecorderEvent(store: StateStore, tabId: number, message:
         url: params.request.url,
         method: params.request.method,
         requestHeaders: params.request.headers,
+        requestBody: params.request.postData || '',
         timestamp: new Date(params.timestamp * 1000).toISOString()
       }
     };
@@ -102,9 +103,20 @@ export async function onRecorderEvent(store: StateStore, tabId: number, message:
   }
 
   if (message === 'Fetch.requestPaused') {
+    // networkId matches the Network.requestWillBeSent requestId; requestId is a new Fetch-layer id
     const networkKey = params.networkId && state.pendingRequests[params.networkId] ? params.networkId : params.requestId;
     const request = state.pendingRequests[networkKey];
     if (request) {
+      // Ensure status is set from the Fetch-layer params if Network.responseReceived hasn't fired yet
+      if (!request.status && params.responseStatusCode) {
+        request.status = params.responseStatusCode;
+        request.statusText = params.responseStatusText || '';
+      }
+      if (!request.responseHeaders && params.responseHeaders) {
+        request.responseHeaders = Object.fromEntries(
+          (params.responseHeaders as { name: string; value: string }[]).map((h) => [h.name, h.value])
+        );
+      }
       try {
         const response = (await chrome.debugger.sendCommand({ tabId }, 'Fetch.getResponseBody', {
           requestId: params.requestId
@@ -116,7 +128,28 @@ export async function onRecorderEvent(store: StateStore, tabId: number, message:
       } catch {
         request.responseBody = '';
       }
-      await store.patch({ pendingRequests: { ...state.pendingRequests, [networkKey]: request } });
+
+      // Save the request to the recording immediately here.
+      // Network.loadingFinished may not fire reliably when Fetch interception is active,
+      // so we persist the completed request as soon as we have the response body.
+      const nextPending = { ...state.pendingRequests };
+      delete nextPending[networkKey];
+
+      const nextRecorded = {
+        ...state.recordedData,
+        requests: {
+          ...state.recordedData.requests,
+          [requestKey(request)]: request
+        }
+      };
+
+      await store.patch({ pendingRequests: nextPending, recordedData: nextRecorded });
+      await upsertRecordingByName(state.currentRecordingName, {
+        filter: state.currentFilter,
+        requests: nextRecorded.requests,
+        metadata: nextRecorded.metadata as RecordingMetadata
+      });
+      await chrome.runtime.sendMessage({ action: 'recordingUpdated', name: state.currentRecordingName });
     }
 
     await chrome.debugger.sendCommand({ tabId }, 'Fetch.continueRequest', { requestId: params.requestId });
@@ -124,6 +157,8 @@ export async function onRecorderEvent(store: StateStore, tabId: number, message:
   }
 
   if (message === 'Network.loadingFinished') {
+    // Requests are now saved in Fetch.requestPaused. Handle any that slipped through
+    // (e.g. requests not matched by the Fetch filter) via loadingFinished as a fallback.
     const request = state.pendingRequests[params.requestId];
     if (!request) return;
 

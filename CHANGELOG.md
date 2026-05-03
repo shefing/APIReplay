@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
+## [1.0.6] - 2026-05-03
+### Fixed
+- POST requests (and other requests with large bodies) no longer silently disappear from recordings. The root cause was that Chrome does not reliably fire `Network.loadingFinished` when Fetch interception is active; requests are now persisted directly inside the `Fetch.requestPaused` handler as soon as the response body is available.
+- Response status and headers are now captured from `Fetch.requestPaused` params as a fallback when `Network.responseReceived` has not yet fired.
+- POST request bodies (`postData`) are now stored in the recording for future reference.
+
 ## [1.0.5] - 2026-05-03
 ### Fixed
 - Editing popup now correctly renders non-Latin1 characters (e.g. Hebrew, Arabic, Chinese) in response bodies that were recorded before v1.0.4 and stored as raw base64.
