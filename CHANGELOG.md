@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
+## [1.0.17] - 2026-05-03
+### Changed
+- Captured Requests table now auto-sizes columns (▶ / Status / Method shrink to content; Path takes the remaining width with truncation + full-URL tooltip) so nothing overflows the popup.
+- Removed the per-row match indicator (●) column. The match indicator was unreliable — some matched URLs were not flagged — so it's been disabled until the matcher is fixed; the matched-row green tint is also gone.
+
 ## [1.0.16] - 2026-05-03
 ### Changed
 - Captured Requests table column order is now **▶ | Status | Method | ● | Path**, so Status is right after the include toggle and Path expands to fill the remaining width.
