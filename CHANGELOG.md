@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
+## [1.0.9] - 2026-05-03
+### Fixed
+- Recording now reliably captures **all** requests on busy pages, not just the first/last. Concurrent network events (`requestWillBeSent` / `responseReceived` / `loadingFinished`) were racing on `chrome.storage.session` reads/writes, causing handlers to overwrite each other's `pendingRequests` and `recordedData` and silently drop most GET requests. The recorder now serializes all events through a per-process promise queue and re-reads the latest state immediately before each `patch`.
+### Added
+- Regression test `records all of many concurrent GET requests (no lost updates)` in `tests/unit/recorder.test.ts` that interleaves N parallel request lifecycles against an async store.
+
 ## [1.0.8] - 2026-05-03
 ### Fixed
 - Recording now reliably captures large POST requests (e.g. `/api/votes/voting-percentages`). Removed `Fetch.enable` interception from the recording flow; recording now uses pure `Network.*` debugger events (`requestWillBeSent` → `responseReceived` → `loadingFinished`) and `Network.getResponseBody`, matching the working pre-refactor v0.1 behavior. POST bodies that Chrome does not inline are fetched via `Network.getRequestPostData`.

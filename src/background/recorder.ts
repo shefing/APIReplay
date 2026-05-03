@@ -52,7 +52,22 @@ export async function stopRecording(store: StateStore): Promise<{ success: boole
   return { success: true };
 }
 
-export async function onRecorderEvent(store: StateStore, tabId: number, message: string, params: any) {
+// Serialize all recorder event processing per process to avoid lost-update
+// races when many concurrent network events update shared state in
+// chrome.storage.session. Without serialization, parallel handlers all read
+// the same stale `pendingRequests` / `recordedData` and overwrite each other,
+// which silently drops most GET requests on busy pages.
+let recorderQueue: Promise<unknown> = Promise.resolve();
+
+export function onRecorderEvent(store: StateStore, tabId: number, message: string, params: any): Promise<void> {
+  const next = recorderQueue.then(() => handleRecorderEvent(store, tabId, message, params));
+  recorderQueue = next.catch((error) => {
+    logger.warn('Recorder event handler failed', error);
+  });
+  return recorderQueue as Promise<void>;
+}
+
+async function handleRecorderEvent(store: StateStore, tabId: number, message: string, params: any) {
   const state = await store.get();
   if (!state.isRecording) {
     return;
@@ -81,8 +96,9 @@ export async function onRecorderEvent(store: StateStore, tabId: number, message:
       }
     }
 
+    const fresh = await store.get();
     const pendingRequests = {
-      ...state.pendingRequests,
+      ...fresh.pendingRequests,
       [params.requestId]: {
         requestId: params.requestId,
         url: params.request.url,
@@ -96,10 +112,10 @@ export async function onRecorderEvent(store: StateStore, tabId: number, message:
     await store.patch({
       pendingRequests,
       recordedData: {
-        ...state.recordedData,
+        ...fresh.recordedData,
         metadata: {
-          ...state.recordedData.metadata,
-          totalRequests: (state.recordedData.metadata.totalRequests || 0) + 1
+          ...fresh.recordedData.metadata,
+          totalRequests: (fresh.recordedData.metadata.totalRequests || 0) + 1
         }
       }
     });
@@ -112,7 +128,8 @@ export async function onRecorderEvent(store: StateStore, tabId: number, message:
     request.responseHeaders = params.response.headers;
     request.status = params.response.status;
     request.statusText = params.response.statusText;
-    await store.patch({ pendingRequests: { ...state.pendingRequests, [params.requestId]: request } });
+    const fresh = await store.get();
+    await store.patch({ pendingRequests: { ...fresh.pendingRequests, [params.requestId]: request } });
     return;
   }
 
@@ -133,29 +150,35 @@ export async function onRecorderEvent(store: StateStore, tabId: number, message:
       request.responseBody = '';
     }
 
-    const nextPending = { ...state.pendingRequests };
+    const fresh = await store.get();
+    const nextPending = { ...fresh.pendingRequests };
     delete nextPending[params.requestId];
 
     const nextRecorded = {
-      ...state.recordedData,
+      ...fresh.recordedData,
       requests: {
-        ...state.recordedData.requests,
+        ...fresh.recordedData.requests,
         [requestKey(request)]: request
       }
     };
 
     await store.patch({ pendingRequests: nextPending, recordedData: nextRecorded });
-    await upsertRecordingByName(state.currentRecordingName, {
-      filter: state.currentFilter,
+    await upsertRecordingByName(fresh.currentRecordingName, {
+      filter: fresh.currentFilter,
       requests: nextRecorded.requests,
       metadata: nextRecorded.metadata as RecordingMetadata
     });
-    await chrome.runtime.sendMessage({ action: 'recordingUpdated', name: state.currentRecordingName });
+    try {
+      await chrome.runtime.sendMessage({ action: 'recordingUpdated', name: fresh.currentRecordingName });
+    } catch {
+      // popup may be closed; ignore
+    }
     return;
   }
 
   if (message === 'Network.loadingFailed') {
-    const nextPending = { ...state.pendingRequests };
+    const fresh = await store.get();
+    const nextPending = { ...fresh.pendingRequests };
     delete nextPending[params.requestId];
     await store.patch({ pendingRequests: nextPending });
   }

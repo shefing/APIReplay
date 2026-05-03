@@ -153,6 +153,60 @@ describe('onRecorderEvent — Network.* flow', () => {
     expect(persisted['rec-1']).toBeUndefined();
   });
 
+  it('records all of many concurrent GET requests (no lost updates)', async () => {
+    // Simulate chrome.storage.session-style async store where get() and patch()
+    // each take a microtask hop. Without serialization, parallel handlers read
+    // the same stale pendingRequests/recordedData and overwrite each other.
+    let state: any = {
+      isRecording: true,
+      isReplaying: false,
+      currentRecordingName: 'rec-1',
+      currentFilter: ['/api'],
+      currentTabId: 1,
+      replayTabId: null,
+      fallbackMatchingEnabled: false,
+      recordedData: { requests: {}, metadata: { totalRequests: 0, responsesWithBody: 0 } },
+      pendingRequests: {}
+    };
+    const asyncStore = {
+      async get() {
+        await Promise.resolve();
+        return state;
+      },
+      async patch(p: any) {
+        await Promise.resolve();
+        state = { ...state, ...p };
+        return state;
+      }
+    } as unknown as StateStore;
+
+    const N = 10;
+    const events: Promise<unknown>[] = [];
+    for (let i = 0; i < N; i++) {
+      const id = `NET-${i}`;
+      events.push(
+        onRecorderEvent(asyncStore, 1, 'Network.requestWillBeSent', {
+          requestId: id,
+          timestamp: 0,
+          request: { url: `https://example.com/api/item/${i}`, method: 'GET', headers: {} }
+        })
+      );
+      events.push(
+        onRecorderEvent(asyncStore, 1, 'Network.responseReceived', {
+          requestId: id,
+          response: { status: 200, statusText: 'OK', headers: {} }
+        })
+      );
+      events.push(onRecorderEvent(asyncStore, 1, 'Network.loadingFinished', { requestId: id }));
+    }
+    await Promise.all(events);
+
+    const saved = persisted['rec-1'];
+    expect(saved).toBeDefined();
+    expect(Object.keys(saved.requests)).toHaveLength(N);
+    expect(state.recordedData.metadata.totalRequests).toBe(N);
+  });
+
   it('decodes base64 response bodies (UTF-8 safe) for non-Latin1 content', async () => {
     const hebrew = 'שלום עולם';
     // base64 of UTF-8 bytes for "שלום עולם"
