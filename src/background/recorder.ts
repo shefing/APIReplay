@@ -3,8 +3,9 @@ import type { StateStore } from './state-store';
 import { getRecordingByName, upsertRecordingByName } from '../shared/storage';
 import type { RecordingMetadata } from '../shared/recording';
 
-function requestKey(request: { method: string; url: string; status?: number }) {
-  return `${request.method} ${new URL(request.url).pathname} [${request.status || 200}]`;
+function requestKey(request: { method: string; url: string; status?: number; timestamp?: string }) {
+  const ts = request.timestamp || new Date().toISOString().replace(/[:.]/g, '-');
+  return `${request.method} ${new URL(request.url).pathname} [${request.status || 200}] ${ts}`;
 }
 
 export async function startRecording(
