@@ -14,10 +14,16 @@ export interface RecordedRequest {
   enabled?: boolean;
 }
 
+export interface UrlMapping {
+  from: string;
+  to: string;
+}
+
 export interface ReplayOptions {
   fallbackMatching?: boolean;
   latencyMs?: number;
   latencyRange?: [number, number];
+  urlMappings?: UrlMapping[];
 }
 
 export interface RecordingMetadata {

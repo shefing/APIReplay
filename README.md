@@ -6,6 +6,8 @@ It is built for a low-overhead workflow: record once, export JSON fixtures, and 
 
 ![API Replay popup preview](img.png)
 
+![API Replay overview — before and after](apireplay-overview.png)
+
 ## Why teams use it
 
 - Keep working when central APIs are slow, down, or changing.
@@ -39,7 +41,19 @@ Tip: Use `Alt+Shift+R` to toggle recording quickly.
 
 ## Common workflows
 
-### A) Record in shared environment, replay locally
+### A) Record in shared environment, replay locally (with URL path mapping)
+
+A common use case is recording on a central/staging environment where APIs are served under microservice-prefixed paths (e.g. `/microservice1/api/users`), then replaying locally where the same API is served at a shorter path (e.g. `/api/users`).
+
+To handle this:
+1. Record normally on the central environment — requests are stored as-is.
+2. Before starting replay locally, enter a URL mapping in the **URL Mappings** field in the Replay tab:
+   ```
+   /microservice1/api -> /api
+   ```
+3. During replay, incoming requests to `/api/users` will be matched against the recorded `/microservice1/api/users` entry.
+
+Multiple mappings are supported (one per line). The first matching prefix wins. Mappings are saved with the recording's replay options and restored when you select the recording again.
 
 Capture traffic from a central/staging environment, export the recording JSON, commit it, and reuse it locally or in CI.
 
@@ -66,6 +80,7 @@ API Replay currently documents and supports client/network request mocking flows
 - Search requests by URL/method/status.
 - Enable/disable replay per request.
 - Simulate replay latency (`latencyMs` or range).
+- Map recorded URL path prefixes to different prefixes during replay (e.g. `/microservice1/api` → `/api`).
 - View replay stats (matched/unmatched/hit counts).
 
 ## Development commands

@@ -1,8 +1,23 @@
 import type { StateStore } from './state-store';
 import { getRecordingByName } from '../shared/storage';
+import type { UrlMapping } from '../shared/recording';
 
 function getPathname(url: string): string {
   return new URL(url).pathname;
+}
+
+function applyUrlMappings(pathname: string, mappings: UrlMapping[] | undefined): string {
+  if (!mappings || mappings.length === 0) {
+    return pathname;
+  }
+  for (const mapping of mappings) {
+    const from = mapping.from.startsWith('/') ? mapping.from : '/' + mapping.from;
+    const to = mapping.to.startsWith('/') ? mapping.to : '/' + mapping.to;
+    if (pathname.startsWith(from)) {
+      return to + pathname.slice(from.length);
+    }
+  }
+  return pathname;
 }
 
 type ReplayerEventParams = {
@@ -156,13 +171,17 @@ export async function onReplayerEvent(store: StateStore, tabId: number, message:
     return;
   }
 
-  let matched = requestValues.find((item) => getPathname(item.url) === getPathname(requestUrl));
+  const replayOptionsData = await chrome.storage.session.get('replayOptions');
+  const urlMappings = replayOptionsData.replayOptions?.urlMappings;
+
+  const incomingPathname = applyUrlMappings(getPathname(requestUrl), urlMappings);
+
+  let matched = requestValues.find((item) => getPathname(item.url) === incomingPathname);
 
   if (!matched && state.fallbackMatchingEnabled) {
     matched = requestValues.find((item) => {
       const candidatePath = getPathname(item.url);
-      const targetPath = getPathname(requestUrl);
-      return candidatePath.split('/').filter(Boolean).length === targetPath.split('/').filter(Boolean).length;
+      return candidatePath.split('/').filter(Boolean).length === incomingPathname.split('/').filter(Boolean).length;
     });
   }
 
