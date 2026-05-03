@@ -8,6 +8,32 @@ function requestKey(request: { method: string; url: string; status?: number; tim
   return `${request.method} ${new URL(request.url).pathname} [${request.status || 200}] ${ts}`;
 }
 
+async function persistRequest(store: StateStore, requestId: string, request: any): Promise<void> {
+  const fresh = await store.get();
+  const nextPending = { ...fresh.pendingRequests };
+  delete nextPending[requestId];
+
+  const nextRecorded = {
+    ...fresh.recordedData,
+    requests: {
+      ...fresh.recordedData.requests,
+      [requestKey(request)]: request
+    }
+  };
+
+  await store.patch({ pendingRequests: nextPending, recordedData: nextRecorded });
+  await upsertRecordingByName(fresh.currentRecordingName, {
+    filter: fresh.currentFilter,
+    requests: nextRecorded.requests,
+    metadata: nextRecorded.metadata as RecordingMetadata
+  });
+  try {
+    await chrome.runtime.sendMessage({ action: 'recordingUpdated', name: fresh.currentRecordingName });
+  } catch {
+    // popup may be closed; ignore
+  }
+}
+
 export async function startRecording(
   store: StateStore,
   name: string,
@@ -51,6 +77,16 @@ export async function stopRecording(store: StateStore): Promise<{ success: boole
     await recorderQueue;
   } catch {
     // queue errors are already logged inside onRecorderEvent
+  }
+
+  // Fallback: flush any pending requests that received response metadata via
+  // Network.responseReceived but never got Network.loadingFinished (e.g. cached
+  // or 304 responses). Persist them now with whatever body we have.
+  const flushState = await store.get();
+  for (const [requestId, request] of Object.entries(flushState.pendingRequests)) {
+    if ((request as any).status) {
+      await persistRequest(store, requestId, request);
+    }
   }
 
   const state = await store.patch({ isRecording: false });
@@ -135,11 +171,24 @@ async function handleRecorderEvent(store: StateStore, tabId: number, message: st
   }
 
   if (message === 'Network.responseReceived') {
-    const request = state.pendingRequests[params.requestId];
+    const fresh = await store.get();
+    const request = fresh.pendingRequests[params.requestId];
     if (!request) return;
+    // Store response metadata so loadingFinished can persist the full entry.
+    // We do NOT call getResponseBody here because the body may not be available yet
+    // (hypothesis #5 in recording-debug-history.md).
     request.responseHeaders = params.response.headers;
     request.status = params.response.status;
     request.statusText = params.response.statusText;
+    await store.patch({ pendingRequests: { ...fresh.pendingRequests, [params.requestId]: request } });
+    return;
+  }
+
+  if (message === 'Network.loadingFinished') {
+    // v0.1 flow: body is reliably available here. Fetch it and persist.
+    const fresh = await store.get();
+    const request = fresh.pendingRequests[params.requestId];
+    if (!request) return; // already persisted or not a tracked request
 
     try {
       const response = (await chrome.debugger.sendCommand({ tabId }, 'Network.getResponseBody', {
@@ -150,46 +199,11 @@ async function handleRecorderEvent(store: StateStore, tabId: number, message: st
         ? decodeURIComponent(escape(atob(responseBody)))
         : responseBody;
     } catch (error) {
-      logger.warn('Failed to get response body', error);
+      logger.warn('Failed to get response body in loadingFinished', error);
       request.responseBody = '';
     }
 
-    const fresh = await store.get();
-    const nextPending = { ...fresh.pendingRequests };
-    delete nextPending[params.requestId];
-
-    const nextRecorded = {
-      ...fresh.recordedData,
-      requests: {
-        ...fresh.recordedData.requests,
-        [requestKey(request)]: request
-      }
-    };
-
-    await store.patch({ pendingRequests: nextPending, recordedData: nextRecorded });
-    await upsertRecordingByName(fresh.currentRecordingName, {
-      filter: fresh.currentFilter,
-      requests: nextRecorded.requests,
-      metadata: nextRecorded.metadata as RecordingMetadata
-    });
-    try {
-      await chrome.runtime.sendMessage({ action: 'recordingUpdated', name: fresh.currentRecordingName });
-    } catch {
-      // popup may be closed; ignore
-    }
-    return;
-  }
-
-  if (message === 'Network.loadingFinished') {
-    // Body capture has moved to Network.responseReceived (matches working v0.1 flow).
-    // Some Chrome paths (cached, 304, streamed) don't reliably fire loadingFinished,
-    // which previously caused GETs to be dropped from the recording.
-    const fresh = await store.get();
-    if (fresh.pendingRequests[params.requestId]) {
-      const nextPending = { ...fresh.pendingRequests };
-      delete nextPending[params.requestId];
-      await store.patch({ pendingRequests: nextPending });
-    }
+    await persistRequest(store, params.requestId, request);
     return;
   }
 

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "isdlc": {
+      "command": "npx",
+      "args": ["-y", "@isdlc/mcp"],
+      "env": {
+        "ISDLC_NO_UPDATE_CHECK": "1"
+      }
+    }
+  }
+}

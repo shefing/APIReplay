@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
+## [1.0.20] - 2026-05-03
+### Fixed
+- Recording now fetches the response body in `Network.loadingFinished` (restoring the reliable v0.1 flow) instead of `Network.responseReceived`, ensuring the body is fully available before capture. A fallback in `stopRecording` flushes any requests that received response metadata but never got `loadingFinished` (e.g. cached / 304 responses).
+
 ## [1.0.19] - 2026-05-03
 ### Fixed
 - Recording no longer drops duplicate API calls — each recorded entry now gets a unique timestamp-based key so repeated calls to the same endpoint are all preserved.
