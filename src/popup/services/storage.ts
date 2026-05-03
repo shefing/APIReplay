@@ -1,5 +1,5 @@
 import { normalizeRecording } from '../../shared/schema';
-import type { Preset, Recording, UserSettings } from '../../shared/recording';
+import type { Preset, Recording, UserSettings, UrlMapping } from '../../shared/recording';
 import {
   getRecordingByName,
   getRecordingsStore,
@@ -245,7 +245,7 @@ export async function updateRecordingRequestSettings(
 
 export async function updateReplayOptions(
   recordingName: string,
-  options: { latencyMs?: number; latencyRange?: [number, number] }
+  options: { latencyMs?: number; latencyRange?: [number, number]; urlMappings?: UrlMapping[] }
 ): Promise<boolean> {
   const recording = await getRecordingByName(recordingName);
   if (!recording) {

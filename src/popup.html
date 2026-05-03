@@ -107,6 +107,10 @@
                     <input id="latencyMs" type="number" min="0" placeholder="Latency ms" class="p-1 text-sm border rounded dark:bg-gray-700" title="Optional fixed delay in milliseconds before each mocked response is returned">
                     <input id="latencyRange" type="text" placeholder="Range: min,max" class="p-1 text-sm border rounded dark:bg-gray-700" title="Optional random delay range in milliseconds as min,max (for example: 100,500)">
                 </div>
+                <div class="mt-2">
+                    <label class="block text-xs font-semibold mb-1" for="urlMappings" title="Map recorded URL prefixes to different prefixes during replay. One mapping per line in the format: /from -> /to (for example: /microservice1/api -> /api)">URL Mappings (one per line: /from -&gt; /to)</label>
+                    <textarea id="urlMappings" rows="3" placeholder="/microservice1/api -> /api" class="w-full p-1 text-sm border rounded dark:bg-gray-700 font-mono" title="Map recorded URL path prefixes to replay path prefixes. Format: /recorded-prefix -> /replay-prefix. Example: /microservice1/api -> /api"></textarea>
+                </div>
             </div>
 
             <div id="replayStatsPanel" class="mb-4 p-2 rounded bg-gray-200 dark:bg-gray-700 text-xs hidden"></div>

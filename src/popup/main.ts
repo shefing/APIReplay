@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const replayStatsPanel = document.getElementById('replayStatsPanel');
     const latencyMsInput = document.getElementById('latencyMs');
     const latencyRangeInput = document.getElementById('latencyRange');
+    const urlMappingsInput = document.getElementById('urlMappings') as HTMLTextAreaElement | null;
     const recordingSelect = document.getElementById('recordingSelect');
     const deleteRecordBtn = document.getElementById('deleteRecord');
     const removeAllRecordingsBtn = document.getElementById('removeAllRecordings');
@@ -233,9 +234,19 @@ document.addEventListener('DOMContentLoaded', () => {
           .split(',')
           .map((entry) => Number(entry.trim()))
           .filter((entry) => Number.isFinite(entry));
+        const urlMappings = (urlMappingsInput?.value || '')
+          .split('\n')
+          .map((line) => line.trim())
+          .filter((line) => line.includes('->'))
+          .map((line) => {
+            const [from, to] = line.split('->').map((s) => s.trim());
+            return { from, to };
+          })
+          .filter((m) => m.from && m.to);
         const options = {
           latencyMs: latencyMsValue > 0 ? latencyMsValue : undefined,
-          latencyRange: latencyRangeValue.length === 2 ? [latencyRangeValue[0], latencyRangeValue[1]] : undefined
+          latencyRange: latencyRangeValue.length === 2 ? [latencyRangeValue[0], latencyRangeValue[1]] : undefined,
+          urlMappings: urlMappings.length > 0 ? urlMappings : undefined
         };
         void updateReplayOptions(name, options);
         chrome.runtime.sendMessage({ action: 'startReplaying', name, fallbackMatching, options }, (response) => {
@@ -309,6 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
     recordingSelect.addEventListener('input', () => {
         updateButtonStates();
         updateApiPreview();
+        loadReplayOptionsIntoUI(recordingSelect.value);
         chrome.storage.local.set({ 'lastUsedRecord': recordingSelect.value });
     });
 
@@ -481,6 +493,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         );
+    }
+
+    function loadReplayOptionsIntoUI(name: string) {
+        if (!name) return;
+        void getRecording(name).then((recording) => {
+            if (!recording) return;
+            const opts = recording.replayOptions;
+            if (latencyMsInput) (latencyMsInput as HTMLInputElement).value = opts?.latencyMs != null ? String(opts.latencyMs) : '';
+            if (latencyRangeInput) (latencyRangeInput as HTMLInputElement).value = opts?.latencyRange ? opts.latencyRange.join(',') : '';
+            if (fallbackMatchingCheckbox) (fallbackMatchingCheckbox as HTMLInputElement).checked = opts?.fallbackMatching ?? false;
+            if (urlMappingsInput) urlMappingsInput.value = opts?.urlMappings ? opts.urlMappings.map((m) => `${m.from} -> ${m.to}`).join('\n') : '';
+        });
     }
 
     function updateApiPreview() {
