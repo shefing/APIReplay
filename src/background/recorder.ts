@@ -102,18 +102,21 @@ export async function onRecorderEvent(store: StateStore, tabId: number, message:
   }
 
   if (message === 'Fetch.requestPaused') {
-    const request = state.pendingRequests[params.networkId];
+    const networkKey = params.networkId && state.pendingRequests[params.networkId] ? params.networkId : params.requestId;
+    const request = state.pendingRequests[networkKey];
     if (request) {
       try {
         const response = (await chrome.debugger.sendCommand({ tabId }, 'Fetch.getResponseBody', {
           requestId: params.requestId
         })) as { base64Encoded?: boolean; body?: string };
         const responseBody = response.body || '';
-        request.responseBody = response.base64Encoded ? atob(responseBody) : responseBody;
+        request.responseBody = response.base64Encoded
+          ? decodeURIComponent(escape(atob(responseBody)))
+          : responseBody;
       } catch {
         request.responseBody = '';
       }
-      await store.patch({ pendingRequests: { ...state.pendingRequests, [params.networkId]: request } });
+      await store.patch({ pendingRequests: { ...state.pendingRequests, [networkKey]: request } });
     }
 
     await chrome.debugger.sendCommand({ tabId }, 'Fetch.continueRequest', { requestId: params.requestId });

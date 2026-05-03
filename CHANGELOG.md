@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
+## [1.0.4] - 2026-05-03
+### Fixed
+- Recording no longer silently drops response bodies for POST requests where Chrome assigns a different `networkId` vs `requestId` in the Fetch/Network debugger events (fallback key resolution added).
+- Base64-encoded response bodies containing UTF-8 characters are now correctly decoded during recording (replaced bare `atob` with `decodeURIComponent(escape(atob(...)))`).
+
 ## [1.0.3] - 2026-05-03
 ### Fixed
 - Unicode characters in recorded response bodies no longer cause `btoa` errors during replay (replaced bare `btoa` with a UTF-8-safe base64 encoder).
