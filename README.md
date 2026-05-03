@@ -4,8 +4,6 @@ API Replay is a Chrome MV3 extension for recording and replaying network/API tra
 
 It is built for a low-overhead workflow: record once, export JSON fixtures, and replay locally in dev or tests without introducing extra infra.
 
-![API Replay popup preview](img.png)
-
 ![API Replay overview — before and after](apireplay-overview.png)
 
 ## Why teams use it
@@ -24,7 +22,9 @@ It is built for a low-overhead workflow: record once, export JSON fixtures, and 
 
 ### 2) Load the extension in Chrome
 
-1. Open `chrome://extensions/`.
+![API Replay popup preview](img.png)
+
+1. Open [chrome://extensions/](chrome://extensions/).
 2. Enable `Developer mode`.
 3. Click `Load unpacked`.
 4. Select the unzipped release folder.
@@ -57,14 +57,14 @@ Multiple mappings are supported (one per line). The first matching prefix wins. 
 
 Capture traffic from a central/staging environment, export the recording JSON, commit it, and reuse it locally or in CI.
 
-- Guide: `docs/workflows/central-record-local-replay.md`
+- Guide: [`docs/workflows/central-record-local-replay.md`](docs/workflows/central-record-local-replay.md)
 
 ### B) Reuse exported recordings in Playwright client-fetch tests
 
 Use `applyRecordingMocks` to fulfill browser requests from an exported recording fixture:
 
-- Guide: `docs/playwright-integration.md`
-- Helper API: `tests/helpers/recording-mock.ts`
+- Guide: [`docs/playwright-integration.md`](docs/playwright-integration.md)
+- Helper API: [`tests/helpers/recording-mock.ts`](tests/helpers/recording-mock.ts)
 
 ## Capability boundary
 
@@ -107,13 +107,13 @@ Useful scripts:
 
 ## More docs
 
-- `CHANGELOG.md`
-- `CONTRIBUTING.md`
-- `SECURITY.md`
-- `PRIVACY.md`
-- `docs/playwright-integration.md`
-- `docs/workflows/central-record-local-replay.md`
-- `docs/store/`
+- [`CHANGELOG.md`](CHANGELOG.md)
+- [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- [`SECURITY.md`](SECURITY.md)
+- [`PRIVACY.md`](PRIVACY.md)
+- [`docs/playwright-integration.md`](docs/playwright-integration.md)
+- [`docs/workflows/central-record-local-replay.md`](docs/workflows/central-record-local-replay.md)
+- [`docs/store/`](docs/store/)
 
 ## License
 
