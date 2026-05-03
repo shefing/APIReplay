@@ -129,6 +129,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isReplaying) {
             recordingSelect.value = response.currentRecordingName;
+            setActiveTab('replay');
+            document.body.classList.add('is-replaying');
+            replayStatsPanel?.classList.remove('hidden');
+            void refreshReplayStats();
         }
     });
 
@@ -259,6 +263,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateButtonStates();
                 updateStatusIndicator();
                 replayStatsPanel.classList.remove('hidden');
+                document.body.classList.add('is-replaying');
+                setActiveTab('replay');
                 void refreshReplayStats();
             } else {
                 alert('Failed to start replaying: ' + (response ? response.error : 'Unknown error'));
@@ -276,6 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateButtonStates();
                 updateStatusIndicator();
                 replayStatsPanel.classList.add('hidden');
+                document.body.classList.remove('is-replaying');
                 console.log('Replaying stopped successfully');
             } else {
                 const errorMessage = response && typeof response.error === 'string' ? response.error : 'Unknown error';
@@ -813,11 +820,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             const stats = response.replayStats;
+            const unmatched = stats.unmatched || 0;
+            const recent = (stats.unmatchedUrls || []).slice(-5).join(' | ');
             replayStatsPanel.innerHTML = `
-              <div><strong>Replay stats</strong></div>
-              <div>Matched: ${stats.matched || 0}</div>
-              <div>Unmatched: ${stats.unmatched || 0}</div>
-              <div>Recent unmatched: ${(stats.unmatchedUrls || []).slice(-5).join(' | ') || 'None'}</div>
+              <div><strong>Replay stats</strong> <span class="opacity-60 text-xs">(only requests within the recording's URL filter are counted)</span></div>
+              <div>Matched: <strong>${stats.matched || 0}</strong></div>
+              <div class="opacity-70 text-xs">Unmatched (in-scope only): ${unmatched}</div>
+              ${unmatched > 0 && recent ? `<div class="opacity-60 text-xs">Recent unmatched: ${recent}</div>` : ''}
             `;
         });
     }

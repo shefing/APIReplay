@@ -83,7 +83,8 @@ export async function startReplaying(
     currentRecordingName: name,
     replayTabId: tabs[0].id,
     fallbackMatchingEnabled: fallbackMatching,
-    recordedData
+    recordedData,
+    currentFilter: Array.isArray(recording.filter) && recording.filter.length > 0 ? recording.filter : ['/api']
   });
 
   if (options && recording) {
@@ -188,6 +189,15 @@ export async function onReplayerEvent(store: StateStore, tabId: number, message:
 
   const incomingPathname = applyUrlMappings(getPathname(requestUrl), urlMappings);
   const incomingMethod = getEventRequestMethod(params);
+
+  // Only count/replay requests in scope of the recording's URL filter.
+  // Out-of-scope URLs (e.g. analytics like /ingest/*) are passed through without affecting stats.
+  const filter = Array.isArray(state.currentFilter) && state.currentFilter.length > 0 ? state.currentFilter : ['/api'];
+  const inScope = filter.some((entry) => incomingPathname.includes(entry));
+  if (!inScope) {
+    await continueRequest(tabId, message, params);
+    return;
+  }
 
   let matched = requestValues.find(
     (item) => methodsMatch(item.method, incomingMethod) && getPathname(item.url) === incomingPathname

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
+## [1.0.13] - 2026-05-03
+### Changed
+- Replay stats now only count requests within the recording's URL filter (e.g. `/api`). Out-of-scope analytics calls (e.g. `/ingest/*`) no longer pollute Matched/Unmatched counters.
+- "Unmatched" stat is de-emphasized in the popup; "Recent unmatched" is hidden when there are no in-scope unmatched requests.
+
+### Added
+- When opening the popup while replay is in progress, the Replay tab is now focused automatically and the popup body is visually marked (blue tint + border) to indicate replay mode.
+
 ## [1.0.12] - 2026-05-03
 ### Fixed
 - Record tab now shows the full request list right after stopping recording. Two issues caused it to look "still filtered" while the replay/review tab showed everything: (1) the popup's `newApiCall` live-update listener referenced an undeclared `currentRecordingApis` set and threw on every captured request, so the record-tab list was never updated live; (2) `stopRecording` detached the debugger before the recorder's event queue had a chance to drain, so any `responseReceived` handlers still mid-flight were cancelled. Now the popup declares `currentRecordingApis` properly, and `stopRecording` awaits the recorder queue before detaching.
