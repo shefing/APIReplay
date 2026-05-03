@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
+## [1.0.3] - 2026-05-03
+### Fixed
+- Unicode characters in recorded response bodies no longer cause `btoa` errors during replay (replaced bare `btoa` with a UTF-8-safe base64 encoder).
+
 ## [1.0.2] - 2026-05-03
 ### Added
 - URL path prefix mapping for cross-environment replay: record on staging (e.g. `/microservice1/api/users`), replay locally (e.g. `/api/users`) using the new **URL Mappings** field in the Replay tab.

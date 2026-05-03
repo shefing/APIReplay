@@ -2,6 +2,10 @@ import type { StateStore } from './state-store';
 import { getRecordingByName } from '../shared/storage';
 import type { UrlMapping } from '../shared/recording';
 
+function safeBase64(str: string): string {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
 function getPathname(url: string): string {
   return new URL(url).pathname;
 }
@@ -226,20 +230,20 @@ export async function onReplayerEvent(store: StateStore, tabId: number, message:
       responseCode: matched.status || 200,
       responsePhrase: matched.statusText || 'OK',
       responseHeaders: [{ name: 'Content-Type', value: 'application/json' }],
-      body: btoa(rawBody)
+      body: safeBase64(rawBody)
     });
     return;
   }
 
-  const body = btoa(rawBody);
+  const body = safeBase64(rawBody);
   if (params.interceptionId) {
     await chrome.debugger.sendCommand({ tabId }, 'Network.continueInterceptedRequest', {
       interceptionId: params.interceptionId,
-      rawResponse: btoa(
+      rawResponse: safeBase64(
         `HTTP/1.1 ${matched.status || 200} ${matched.statusText || 'OK'}\r\n` +
           `Content-Type: application/json\r\n` +
           `Content-Length: ${body.length}\r\n\r\n` +
-          body
+          rawBody
       )
     });
   }
