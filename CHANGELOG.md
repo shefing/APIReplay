@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
+## [1.0.11] - 2026-05-03
+### Fixed
+- Recording now persists requests from `Network.responseReceived` (matching the working v0.1 flow) instead of only from `Network.loadingFinished`. Chrome does not reliably fire `loadingFinished` for some responses (cached, 304 Not Modified, streamed), which previously caused most GETs to be silently dropped — only the POST would survive in the saved recording even though all requests appeared live during recording.
+### Added
+- Regression test in `tests/unit/recorder.test.ts` covering the case where `Network.loadingFinished` never fires after `responseReceived`.
+
 ## [1.0.10] - 2026-05-03
 ### Fixed
 - Replay now matches recorded requests by **HTTP method + pathname**, not pathname alone. Previously, when a recording contained both a GET and a POST on the same path (e.g. `/api/items`), only the entry that happened to come first in iteration order was returned for every incoming request — which on busy pages typically meant POSTs replied to GETs and vice‑versa. The fallback (length-based) matcher also now requires method to match.

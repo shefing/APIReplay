@@ -128,14 +128,6 @@ async function handleRecorderEvent(store: StateStore, tabId: number, message: st
     request.responseHeaders = params.response.headers;
     request.status = params.response.status;
     request.statusText = params.response.statusText;
-    const fresh = await store.get();
-    await store.patch({ pendingRequests: { ...fresh.pendingRequests, [params.requestId]: request } });
-    return;
-  }
-
-  if (message === 'Network.loadingFinished') {
-    const request = state.pendingRequests[params.requestId];
-    if (!request) return;
 
     try {
       const response = (await chrome.debugger.sendCommand({ tabId }, 'Network.getResponseBody', {
@@ -172,6 +164,19 @@ async function handleRecorderEvent(store: StateStore, tabId: number, message: st
       await chrome.runtime.sendMessage({ action: 'recordingUpdated', name: fresh.currentRecordingName });
     } catch {
       // popup may be closed; ignore
+    }
+    return;
+  }
+
+  if (message === 'Network.loadingFinished') {
+    // Body capture has moved to Network.responseReceived (matches working v0.1 flow).
+    // Some Chrome paths (cached, 304, streamed) don't reliably fire loadingFinished,
+    // which previously caused GETs to be dropped from the recording.
+    const fresh = await store.get();
+    if (fresh.pendingRequests[params.requestId]) {
+      const nextPending = { ...fresh.pendingRequests };
+      delete nextPending[params.requestId];
+      await store.patch({ pendingRequests: nextPending });
     }
     return;
   }

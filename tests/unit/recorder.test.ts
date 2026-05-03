@@ -207,6 +207,32 @@ describe('onRecorderEvent — Network.* flow', () => {
     expect(state.recordedData.metadata.totalRequests).toBe(N);
   });
 
+  it('persists the request even when Network.loadingFinished never fires (e.g. cached/304)', async () => {
+    // Regression for bug where many GETs were dropped: previously persistence
+    // happened only in loadingFinished, but Chrome does not reliably fire it
+    // for cached/304/streamed responses, so those requests vanished from the
+    // saved recording. Now responseReceived itself persists.
+    const store = createStore({});
+
+    await onRecorderEvent(store, 1, 'Network.requestWillBeSent', {
+      requestId: 'NET-CACHED',
+      timestamp: 0,
+      request: { url: 'https://example.com/api/cached', method: 'GET', headers: {} }
+    });
+    await onRecorderEvent(store, 1, 'Network.responseReceived', {
+      requestId: 'NET-CACHED',
+      response: { status: 304, statusText: 'Not Modified', headers: {} }
+    });
+    // Note: NO loadingFinished fired.
+
+    const saved = persisted['rec-1'];
+    expect(saved).toBeDefined();
+    const keys = Object.keys(saved.requests);
+    expect(keys).toHaveLength(1);
+    expect(saved.requests[keys[0]].method).toBe('GET');
+    expect(saved.requests[keys[0]].status).toBe(304);
+  });
+
   it('decodes base64 response bodies (UTF-8 safe) for non-Latin1 content', async () => {
     const hebrew = 'שלום עולם';
     // base64 of UTF-8 bytes for "שלום עולם"
