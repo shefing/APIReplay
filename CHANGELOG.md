@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog,
 and this project adheres to Semantic Versioning.
 
+## [1.0.18] - 2026-05-03
+### Fixed
+- Replay no longer logs `Uncaught (in promise) Error: Detached while handling command` when the debugger detaches mid-flight (tab navigated/closed, replay stopped, or service worker recycled). All `chrome.debugger.sendCommand` calls in `src/background/replayer.ts` are now routed through a `safeSendCommand` helper that swallows detach-related errors. After a latency wait, replay state is re-checked before sending the response so we don't try to fulfill on a detached debugger.
+
 ## [1.0.17] - 2026-05-03
 ### Changed
 - Captured Requests table now auto-sizes columns (▶ / Status / Method shrink to content; Path takes the remaining width with truncation + full-URL tooltip) so nothing overflows the popup.

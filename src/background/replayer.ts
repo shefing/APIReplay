@@ -42,16 +42,34 @@ function methodsMatch(a: string | undefined, b: string | undefined): boolean {
   return (a || 'GET').toUpperCase() === (b || 'GET').toUpperCase();
 }
 
+function isDetachedError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err ?? '');
+  return /Detached while handling command|Debugger is not attached|No tab with given id|Target closed/i.test(msg);
+}
+
+async function safeSendCommand(tabId: number, method: string, commandParams?: object): Promise<void> {
+  try {
+    await chrome.debugger.sendCommand({ tabId }, method as never, commandParams as never);
+  } catch (err) {
+    if (isDetachedError(err)) {
+      // Debugger was detached (tab closed, navigated, or replay stopped) while we were
+      // handling the request. Swallow — there's nothing to fulfill anymore.
+      return;
+    }
+    throw err;
+  }
+}
+
 async function continueRequest(tabId: number, message: string, params: ReplayerEventParams): Promise<void> {
   if (message === 'Fetch.requestPaused' && params.requestId) {
-    await chrome.debugger.sendCommand({ tabId }, 'Fetch.continueRequest', {
+    await safeSendCommand(tabId, 'Fetch.continueRequest', {
       requestId: params.requestId
     });
     return;
   }
 
   if (params.interceptionId) {
-    await chrome.debugger.sendCommand({ tabId }, 'Network.continueInterceptedRequest', {
+    await safeSendCommand(tabId, 'Network.continueInterceptedRequest', {
       interceptionId: params.interceptionId
     });
   }
@@ -249,12 +267,17 @@ export async function onReplayerEvent(store: StateStore, tabId: number, message:
   const latency = resolveLatency(replayStatsData.replayOptions);
   if (latency > 0) {
     await new Promise((resolve) => setTimeout(resolve, latency));
+    // Re-check after the wait — replay may have been stopped / debugger detached.
+    const stateAfter = await store.get();
+    if (!stateAfter.isReplaying) {
+      return;
+    }
   }
 
   const rawBody = matched.responseBody || '';
 
   if (message === 'Fetch.requestPaused' && params.requestId) {
-    await chrome.debugger.sendCommand({ tabId }, 'Fetch.fulfillRequest', {
+    await safeSendCommand(tabId, 'Fetch.fulfillRequest', {
       requestId: params.requestId,
       responseCode: matched.status || 200,
       responsePhrase: matched.statusText || 'OK',
@@ -266,7 +289,7 @@ export async function onReplayerEvent(store: StateStore, tabId: number, message:
 
   const body = safeBase64(rawBody);
   if (params.interceptionId) {
-    await chrome.debugger.sendCommand({ tabId }, 'Network.continueInterceptedRequest', {
+    await safeSendCommand(tabId, 'Network.continueInterceptedRequest', {
       interceptionId: params.interceptionId,
       rawResponse: safeBase64(
         `HTTP/1.1 ${matched.status || 200} ${matched.statusText || 'OK'}\r\n` +
