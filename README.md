@@ -6,6 +6,8 @@ It is built for a low-overhead workflow: record once, export JSON fixtures, and 
 
 ![API Replay popup preview](img.png)
 
+![API Replay overview — before and after](apireplay-overview.png)
+
 ## Why teams use it
 
 - Keep working when central APIs are slow, down, or changing.
