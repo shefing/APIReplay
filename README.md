@@ -98,6 +98,30 @@ Useful scripts:
 - `npm run package` - builds and creates `dist.zip`
 - `npm run test:e2e` - Playwright extension smoke test
 
+## iSDLC governance loop
+
+APIReplay is managed through iSDLC legacy onboarding and steady-state governance.
+
+For day-to-day delivery, run this loop in addition to normal npm checks:
+
+```bash
+isdlc plan new "<change-title>"
+isdlc adr new "<decision-title>"      # when architecture/approach changes
+isdlc debt add "<deferred-item>" --reason "<why deferred>"   # when explicitly deferring
+isdlc state sync
+isdlc doctor
+```
+
+Merge readiness requires both governance and product checks:
+
+```bash
+isdlc doctor
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+```
+
 ## Architecture overview
 
 - `src/background/`: modular MV3 service worker (`main`, `recorder`, `replayer`, `messaging`, `state-store`, `logger`)
